@@ -331,7 +331,7 @@ public class MiloOPCUAClientThreadSafe<T> implements IOPCUAClient<T> {
         
         int statusCode = dataValue.getStatusCode() != null 
             ? (int) dataValue.getStatusCode().getValue()
-            : StatusCodes.Bad;
+            : 0x80000000;
         
         return new OPCUAValue<>(sourceTimestamp, serverTimestamp, value, statusCode);
     }
@@ -417,13 +417,12 @@ public class MiloOPCUAClientThreadSafe<T> implements IOPCUAClient<T> {
     }
     
     private class MiloSessionActivityListener implements org.eclipse.milo.opcua.sdk.client.SessionActivityListener {
-        @Override
+        
         public void onSessionInactive(OpcUaClient client) {
             logger.warn("OPC-UA session became inactive");
             handleConnectionLoss();
         }
         
-        @Override
         public void onSessionActive(OpcUaClient client) {
             logger.info("OPC-UA session is active");
             connected.set(true);

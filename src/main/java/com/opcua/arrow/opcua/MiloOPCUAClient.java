@@ -274,7 +274,7 @@ public class MiloOPCUAClient<T> implements IOPCUAClient<T> {
         
         int statusCode = dataValue.getStatusCode() != null 
             ? (int) dataValue.getStatusCode().getValue()
-            : StatusCodes.Bad;
+            : 0x80000000;
         
         return new OPCUAValue<>(sourceTimestamp, serverTimestamp, value, statusCode);
     }

@@ -124,7 +124,8 @@ The generated Arrow schema contains the following fields:
 ## Thread Safety
 
 - OPCUAArrowCollector: Thread-safe after connection
-- MiloOPCUAClient: Thread-safe with internal synchronization
+- MiloOPCUAClient: No Thread-safe
+- MiloOPCUAClientThreadSafe: Thread-safe with internal synchronization
 - ArrowAdapter: Not thread-safe (create per-thread instances)
 
 ## Error Handling
