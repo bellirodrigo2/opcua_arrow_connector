@@ -1,17 +1,15 @@
-package com.opcua.arrow.collector;
+package com.opcua_arrow.collector;
 
-import com.opcua.arrow.interfaces.IArrowAdapter;
-import com.opcua.arrow.interfaces.IOPCUAClient;
-import com.opcua.arrow.interfaces.OPCUAValue;
+import com.opcua_arrow.interfaces.IArrowAdapter;
+import com.opcua_arrow.interfaces.IOPCUAReader;
 import org.apache.arrow.vector.types.pojo.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Main collector that combines OPC-UA client and Arrow adapter.
+ * Main collector that combines OPC-UA reader and Arrow adapter.
  * Reads data from OPC-UA server and converts it to Arrow IPC format.
  * 
  * @param <T> The type of scalar values
@@ -19,28 +17,28 @@ import java.util.concurrent.CompletableFuture;
 public class OPCUAArrowCollector<T> implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(OPCUAArrowCollector.class);
     
-    private final IOPCUAClient<T> opcuaClient;
+    private final IOPCUAReader<T> opcuaReader;
     private final IArrowAdapter<T> arrowAdapter;
     
     /**
      * Creates a new OPC-UA Arrow collector.
      * 
-     * @param opcuaClient The OPC-UA client implementation
+     * @param opcuaReader The OPC-UA reader implementation (with embedded connection)
      * @param arrowAdapter The Arrow adapter implementation
      */
-    public OPCUAArrowCollector(IOPCUAClient<T> opcuaClient, IArrowAdapter<T> arrowAdapter) {
-        this.opcuaClient = opcuaClient;
+    public OPCUAArrowCollector(IOPCUAReader<T> opcuaReader, IArrowAdapter<T> arrowAdapter) {
+        this.opcuaReader = opcuaReader;
         this.arrowAdapter = arrowAdapter;
     }
     
     /**
-     * Connects to the OPC-UA server.
+     * Starts the collector by connecting to the OPC-UA server and validating configured nodes.
      * 
-     * @return A future that completes when connected
+     * @return A future that completes when started
      */
-    public CompletableFuture<Void> connect() {
-        logger.info("Connecting to OPC-UA server...");
-        return opcuaClient.connect();
+    public CompletableFuture<Void> start() {
+        logger.info("Starting OPC-UA Arrow collector...");
+        return opcuaReader.start();
     }
     
     /**
@@ -51,10 +49,10 @@ public class OPCUAArrowCollector<T> implements AutoCloseable {
     public CompletableFuture<byte[]> collect() {
         logger.debug("Collecting data from OPC-UA server...");
         
-        return opcuaClient.read()
-            .thenApply(data -> {
-                logger.debug("Read {} values from OPC-UA server", data.size());
-                byte[] arrowData = arrowAdapter.toArrowIPC(data);
+        return opcuaReader.read()
+            .thenApply(dataValues -> {
+                logger.debug("Read {} data values from OPC-UA server", dataValues.size());
+                byte[] arrowData = arrowAdapter.toArrowIPC(dataValues);
                 logger.debug("Converted to Arrow IPC format ({} bytes)", arrowData.length);
                 return arrowData;
             })
@@ -84,34 +82,34 @@ public class OPCUAArrowCollector<T> implements AutoCloseable {
     }
     
     /**
-     * Checks if the collector is connected to the OPC-UA server.
+     * Checks if the collector is started and connected to the OPC-UA server.
      * 
-     * @return true if connected, false otherwise
+     * @return true if started and connected, false otherwise
      */
-    public boolean isConnected() {
-        return opcuaClient.isConnected();
+    public boolean isStarted() {
+        return opcuaReader.isStarted();
     }
     
     /**
-     * Disconnects from the OPC-UA server.
+     * Stops the collector by disconnecting from the OPC-UA server.
      * 
-     * @return A future that completes when disconnected
+     * @return A future that completes when stopped
      */
-    public CompletableFuture<Void> disconnect() {
-        logger.info("Disconnecting from OPC-UA server...");
-        return opcuaClient.disconnect();
+    public CompletableFuture<Void> stop() {
+        logger.info("Stopping OPC-UA Arrow collector...");
+        return opcuaReader.stop();
     }
     
     @Override
     public void close() throws Exception {
         try {
-            disconnect().get();
+            stop().get();
         } catch (Exception e) {
             logger.warn("Error during close: {}", e.getMessage());
         }
         
-        if (opcuaClient instanceof AutoCloseable) {
-            ((AutoCloseable) opcuaClient).close();
+        if (opcuaReader instanceof AutoCloseable) {
+            ((AutoCloseable) opcuaReader).close();
         }
         
         if (arrowAdapter instanceof AutoCloseable) {
@@ -125,11 +123,11 @@ public class OPCUAArrowCollector<T> implements AutoCloseable {
      * @param <T> The type of scalar values
      */
     public static class Builder<T> {
-        private IOPCUAClient<T> opcuaClient;
+        private IOPCUAReader<T> opcuaReader;
         private IArrowAdapter<T> arrowAdapter;
         
-        public Builder<T> withOPCUAClient(IOPCUAClient<T> client) {
-            this.opcuaClient = client;
+        public Builder<T> withOPCUAReader(IOPCUAReader<T> reader) {
+            this.opcuaReader = reader;
             return this;
         }
         
@@ -139,14 +137,14 @@ public class OPCUAArrowCollector<T> implements AutoCloseable {
         }
         
         public OPCUAArrowCollector<T> build() {
-            if (opcuaClient == null) {
-                throw new IllegalStateException("OPC-UA client is required");
+            if (opcuaReader == null) {
+                throw new IllegalStateException("OPC-UA reader is required");
             }
             if (arrowAdapter == null) {
                 throw new IllegalStateException("Arrow adapter is required");
             }
             
-            return new OPCUAArrowCollector<>(opcuaClient, arrowAdapter);
+            return new OPCUAArrowCollector<>(opcuaReader, arrowAdapter);
         }
     }
 }

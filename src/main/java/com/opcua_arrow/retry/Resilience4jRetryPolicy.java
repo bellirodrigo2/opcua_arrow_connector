@@ -1,7 +1,7 @@
-package com.opcua.arrow.retry;
+package com.opcua_arrow.retry;
 
-import com.opcua.arrow.config.RetryPolicyConfig;
-import com.opcua.arrow.interfaces.IRetryPolicy;
+import com.opcua_arrow.config.RetryPolicyConfig;
+import com.opcua_arrow.interfaces.IRetryPolicy;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
 import io.github.resilience4j.retry.RetryRegistry;

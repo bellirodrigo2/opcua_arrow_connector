@@ -1,4 +1,4 @@
-package com.opcua.arrow.config;
+package com.opcua_arrow.config;
 
 import java.time.Duration;
 import java.util.HashMap;

@@ -1,14 +1,16 @@
-package com.opcua.arrow.factory;
+package com.opcua_arrow.factory;
 
-import com.opcua.arrow.adapter.ArrowAdapter;
-import com.opcua.arrow.collector.OPCUAArrowCollector;
-import com.opcua.arrow.config.OPCUAClientConfig;
-import com.opcua.arrow.config.RetryPolicyConfig;
-import com.opcua.arrow.interfaces.IArrowAdapter;
-import com.opcua.arrow.interfaces.IOPCUAClient;
-import com.opcua.arrow.interfaces.IRetryPolicy;
-import com.opcua.arrow.opcua.MiloOPCUAClientThreadSafe;
-import com.opcua.arrow.retry.Resilience4jRetryPolicy;
+import com.opcua_arrow.arrow.ArrowAdapter;
+import com.opcua_arrow.collector.OPCUAArrowCollector;
+import com.opcua_arrow.config.OPCUAClientConfig;
+import com.opcua_arrow.config.RetryPolicyConfig;
+import com.opcua_arrow.interfaces.IArrowAdapter;
+import com.opcua_arrow.interfaces.IOPCUAConnection;
+import com.opcua_arrow.interfaces.IOPCUAReader;
+import com.opcua_arrow.interfaces.IRetryPolicy;
+import com.opcua_arrow.opcua.MiloOPCUAConnection;
+import com.opcua_arrow.opcua.MiloOPCUAReader;
+import com.opcua_arrow.retry.Resilience4jRetryPolicy;
 
 import java.util.List;
 import java.util.Map;
@@ -39,9 +41,11 @@ public class CollectorFactory {
         // Create retry policy
         IRetryPolicy retryPolicy = createRetryPolicy(retryConfig);
         
-        // Create OPC-UA client
-        IOPCUAClient<T> opcuaClient = createOPCUAClient(
-            clientConfig, nodeIds, valueType, retryPolicy);
+        // Create OPC-UA connection
+        IOPCUAConnection opcuaConnection = createOPCUAConnection(clientConfig, retryPolicy);
+        
+        // Create OPC-UA reader with the connection
+        IOPCUAReader<T> opcuaReader = createOPCUAReader(nodeIds, valueType, opcuaConnection, retryPolicy);
         
         // Create Arrow adapter
         IArrowAdapter<T> arrowAdapter = createArrowAdapter(
@@ -49,7 +53,7 @@ public class CollectorFactory {
         
         // Build and return collector
         return new OPCUAArrowCollector.Builder<T>()
-            .withOPCUAClient(opcuaClient)
+            .withOPCUAReader(opcuaReader)
             .withArrowAdapter(arrowAdapter)
             .build();
     }
@@ -68,22 +72,36 @@ public class CollectorFactory {
     }
     
     /**
-     * Creates an OPC-UA client from configuration.
+     * Creates an OPC-UA connection from configuration.
      * 
-     * @param <T> The type of scalar values
      * @param config The OPC-UA client configuration
-     * @param nodeIds The list of node IDs to read
-     * @param valueType The class of the value type
      * @param retryPolicy The retry policy to use
-     * @return A new OPC-UA client
+     * @return A new OPC-UA connection
      */
-    public static <T> IOPCUAClient<T> createOPCUAClient(
+    public static IOPCUAConnection createOPCUAConnection(
             OPCUAClientConfig config,
-            List<String> nodeIds,
-            Class<T> valueType,
             IRetryPolicy retryPolicy) {
         
-        return new MiloOPCUAClientThreadSafe<>(config, nodeIds, valueType, retryPolicy);
+        return new MiloOPCUAConnection(config, retryPolicy);
+    }
+    
+    /**
+     * Creates an OPC-UA reader from configuration.
+     * 
+     * @param <T> The type of scalar values
+     * @param nodeIds The list of node IDs to read
+     * @param valueType The class of the value type
+     * @param connection The OPC-UA connection to use
+     * @param retryPolicy The retry policy to use
+     * @return A new OPC-UA reader
+     */
+    public static <T> IOPCUAReader<T> createOPCUAReader(
+            List<String> nodeIds,
+            Class<T> valueType,
+            IOPCUAConnection connection,
+            IRetryPolicy retryPolicy) {
+        
+        return new MiloOPCUAReader<>(nodeIds, valueType, connection, retryPolicy);
     }
     
     /**

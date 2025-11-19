@@ -1,47 +1,37 @@
-package com.opcua.arrow.opcua;
+package com.opcua_arrow.opcua;
 
-import com.opcua.arrow.config.OPCUAClientConfig;
-import com.opcua.arrow.interfaces.IOPCUAClient;
-import com.opcua.arrow.interfaces.IRetryPolicy;
-import com.opcua.arrow.interfaces.OPCUAValue;
+import com.opcua_arrow.config.OPCUAClientConfig;
+import com.opcua_arrow.interfaces.IOPCUAConnection;
+import com.opcua_arrow.interfaces.IRetryPolicy;
+import org.eclipse.milo.opcua.sdk.client.SessionActivityListener;
 import org.eclipse.milo.opcua.sdk.client.OpcUaClient;
 import org.eclipse.milo.opcua.sdk.client.api.config.OpcUaClientConfig;
 import org.eclipse.milo.opcua.sdk.client.api.identity.AnonymousProvider;
 import org.eclipse.milo.opcua.sdk.client.api.identity.IdentityProvider;
 import org.eclipse.milo.opcua.sdk.client.api.identity.UsernameProvider;
 import org.eclipse.milo.opcua.stack.client.DiscoveryClient;
-import org.eclipse.milo.opcua.stack.core.AttributeId;
 import org.eclipse.milo.opcua.stack.core.Identifiers;
-import org.eclipse.milo.opcua.stack.core.StatusCodes;
-import org.eclipse.milo.opcua.stack.core.types.builtin.*;
 import org.eclipse.milo.opcua.stack.core.types.enumerated.TimestampsToReturn;
 import org.eclipse.milo.opcua.stack.core.types.structured.EndpointDescription;
-import org.eclipse.milo.opcua.stack.core.types.structured.ReadValueId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.Collectors;
 
 import static org.eclipse.milo.opcua.stack.core.types.builtin.unsigned.Unsigned.uint;
 
 /**
- * Thread-safe OPC-UA client implementation using Eclipse Milo with auto-reconnect and keep-alive.
- *
- * @param <T> The type of values to read
+ * Thread-safe OPC-UA connection implementation using Eclipse Milo with auto-reconnect and keep-alive.
+ * Handles only connection management, separate from reading operations.
  */
-public class MiloOPCUAClientThreadSafe<T> implements IOPCUAClient<T> {
-    private static final Logger logger = LoggerFactory.getLogger(MiloOPCUAClientThreadSafe.class);
+public class MiloOPCUAConnection implements IOPCUAConnection {
+    private static final Logger logger = LoggerFactory.getLogger(MiloOPCUAConnection.class);
     
     private final OPCUAClientConfig config;
-    private final List<String> nodeIds;
-    private final Class<T> valueType;
     private final IRetryPolicy retryPolicy;
     
     // Thread-safe state management
@@ -58,11 +48,8 @@ public class MiloOPCUAClientThreadSafe<T> implements IOPCUAClient<T> {
     private volatile ScheduledExecutorService keepAliveExecutor;
     private final Object keepAliveLock = new Object();
     
-    public MiloOPCUAClientThreadSafe(OPCUAClientConfig config, List<String> nodeIds, 
-                                     Class<T> valueType, IRetryPolicy retryPolicy) {
+    public MiloOPCUAConnection(OPCUAClientConfig config, IRetryPolicy retryPolicy) {
         this.config = config;
-        this.nodeIds = new ArrayList<>(nodeIds); // Defensive copy
-        this.valueType = valueType;
         this.retryPolicy = retryPolicy;
     }
     
@@ -157,7 +144,7 @@ public class MiloOPCUAClientThreadSafe<T> implements IOPCUAClient<T> {
             
             keepAliveExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
                 Thread thread = new Thread(r);
-                thread.setName("OPC-UA-KeepAlive");
+                thread.setName("OPC-UA-KeepAlive-" + hashCode());
                 thread.setDaemon(true);
                 return thread;
             });
@@ -253,121 +240,6 @@ public class MiloOPCUAClientThreadSafe<T> implements IOPCUAClient<T> {
     }
     
     @Override
-    public CompletableFuture<List<OPCUAValue<T>>> read() {
-        if (!connected.get()) {
-            return CompletableFuture.failedFuture(
-                new IllegalStateException("Not connected to OPC-UA server"));
-        }
-        
-        return retryPolicy.executeWithRetry(() -> readInternal());
-    }
-    
-    private CompletableFuture<List<OPCUAValue<T>>> readInternal() {
-        clientLock.readLock().lock();
-        try {
-            if (client == null || !connected.get()) {
-                throw new IllegalStateException("Client not connected");
-            }
-            
-            List<NodeId> nodeIdList = nodeIds.stream()
-                .map(NodeId::parse)
-                .collect(Collectors.toList());
-            
-            List<ReadValueId> readValueIds = nodeIdList.stream()
-                .map(nodeId -> new ReadValueId(
-                    nodeId,
-                    AttributeId.Value.uid(),
-                    null,
-                    QualifiedName.NULL_VALUE
-                ))
-                .collect(Collectors.toList());
-            
-            OpcUaClient currentClient = client; // Capture reference
-            
-            return currentClient.read(0, TimestampsToReturn.Both, readValueIds)
-                .thenApply(response -> {
-                    DataValue[] results = response.getResults();
-                    List<OPCUAValue<T>> opcValues = new ArrayList<>();
-                    
-                    for (DataValue dataValue : results) {
-                        opcValues.add(convertDataValue(dataValue));
-                    }
-                    
-                    return opcValues;
-                });
-        } finally {
-            clientLock.readLock().unlock();
-        }
-    }
-    
-    @SuppressWarnings("unchecked")
-    private OPCUAValue<T> convertDataValue(DataValue dataValue) {
-        DateTime sourceTime = dataValue.getSourceTime();
-        DateTime serverTime = dataValue.getServerTime();
-        
-        Instant sourceTimestamp = sourceTime != null 
-            ? Instant.ofEpochSecond(sourceTime.getJavaTime() / 1000, 
-                (int) ((sourceTime.getJavaTime() % 1000) * 1_000_000))
-            : null;
-        
-        Instant serverTimestamp = serverTime != null
-            ? Instant.ofEpochSecond(serverTime.getJavaTime() / 1000,
-                (int) ((serverTime.getJavaTime() % 1000) * 1_000_000))
-            : null;
-        
-        T value = null;
-        if (dataValue.getValue() != null && dataValue.getValue().getValue() != null) {
-            try {
-                Object rawValue = dataValue.getValue().getValue();
-                if (valueType.isInstance(rawValue)) {
-                    value = (T) rawValue;
-                } else {
-                    value = convertValue(rawValue);
-                }
-            } catch (Exception e) {
-                logger.warn("Failed to convert value: {}", e.getMessage());
-            }
-        }
-        
-        int statusCode = dataValue.getStatusCode() != null 
-            ? (int) dataValue.getStatusCode().getValue()
-            : 0x80000000;
-        
-        return new OPCUAValue<>(sourceTimestamp, serverTimestamp, value, statusCode);
-    }
-    
-    @SuppressWarnings("unchecked")
-    private T convertValue(Object rawValue) {
-        if (rawValue == null) {
-            return null;
-        }
-        
-        if (valueType == Double.class) {
-            if (rawValue instanceof Number) {
-                return (T) Double.valueOf(((Number) rawValue).doubleValue());
-            }
-        } else if (valueType == Float.class) {
-            if (rawValue instanceof Number) {
-                return (T) Float.valueOf(((Number) rawValue).floatValue());
-            }
-        } else if (valueType == Boolean.class) {
-            return (T) Boolean.valueOf(rawValue.toString());
-        } else if (valueType == String.class) {
-            return (T) rawValue.toString();
-        } else if (valueType == Integer.class) {
-            if (rawValue instanceof Number) {
-                return (T) Integer.valueOf(((Number) rawValue).intValue());
-            }
-        } else if (valueType == Long.class) {
-            if (rawValue instanceof Number) {
-                return (T) Long.valueOf(((Number) rawValue).longValue());
-            }
-        }
-        
-        throw new IllegalArgumentException("Cannot convert " + rawValue.getClass() + " to " + valueType);
-    }
-    
-    @Override
     public CompletableFuture<Void> disconnect() {
         shouldReconnect.set(false);
         
@@ -412,11 +284,26 @@ public class MiloOPCUAClientThreadSafe<T> implements IOPCUAClient<T> {
     }
     
     @Override
+    public String getServerUrl() {
+        return config.getServerUrl();
+    }
+    
+    @Override
     public void close() throws Exception {
         disconnect().get();
     }
     
-    private class MiloSessionActivityListener implements org.eclipse.milo.opcua.sdk.client.SessionActivityListener {
+    @Override
+    public OpcUaClient getClient() {
+        return client;
+    }
+    
+    @Override
+    public ReadWriteLock getClientLock() {
+        return clientLock;
+    }
+    
+    private class MiloSessionActivityListener implements SessionActivityListener {
         
         public void onSessionInactive(OpcUaClient client) {
             logger.warn("OPC-UA session became inactive");

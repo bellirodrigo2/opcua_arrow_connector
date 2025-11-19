@@ -1,4 +1,4 @@
-package com.opcua.arrow.interfaces;
+package com.opcua_arrow.interfaces;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
