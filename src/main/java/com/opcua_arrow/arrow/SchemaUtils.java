@@ -8,7 +8,6 @@ import org.apache.arrow.vector.types.pojo.Schema;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Utilities for creating Arrow schemas.
@@ -22,14 +21,18 @@ public class SchemaUtils {
      * @param idLookup Optional ID lookup map for converting node IDs to integers
      * @return The Arrow schema
      */
-    public static Schema createSchema(Class<?> valueType, Map<String, Integer> idLookup) {
+    public static Schema createSchema(Class<?> valueType, Class<?> idType) {
         List<Field> fields = new ArrayList<>();
         
         // Add pointid field (either string or int32 based on idLookup)
-        if (idLookup != null) {
+        if (idType == Integer.class || idType == int.class) {
             fields.add(Field.notNullable("pointid", new ArrowType.Int(32, true)));
         } else {
-            fields.add(Field.notNullable("pointid", ArrowType.Utf8.INSTANCE));
+            if (idType != String.class) {
+                fields.add(Field.notNullable("pointid", ArrowType.Utf8.INSTANCE));
+            }else{
+                throw new IllegalArgumentException("Unsupported ID type: " + idType);
+            }
         }
         
         // Add timestamp field (nanosecond precision with UTC timezone)

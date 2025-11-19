@@ -2,7 +2,6 @@ package com.opcua_arrow.collector;
 
 import com.opcua_arrow.interfaces.IArrowAdapter;
 import com.opcua_arrow.interfaces.IOPCUAReader;
-import org.apache.arrow.vector.types.pojo.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,13 +11,13 @@ import java.util.concurrent.CompletableFuture;
  * Main collector that combines OPC-UA reader and Arrow adapter.
  * Reads data from OPC-UA server and converts it to Arrow IPC format.
  * 
- * @param <T> The type of scalar values
+ * @param <TValue> The type of scalar values
  */
-public class OPCUAArrowCollector<T> implements AutoCloseable {
+public class OPCUAArrowCollector<TId, TValue> implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(OPCUAArrowCollector.class);
     
-    private final IOPCUAReader<T> opcuaReader;
-    private final IArrowAdapter<T> arrowAdapter;
+    private final IOPCUAReader<TValue> opcuaReader;
+    private final IArrowAdapter<TId, TValue> arrowAdapter;
     
     /**
      * Creates a new OPC-UA Arrow collector.
@@ -26,7 +25,7 @@ public class OPCUAArrowCollector<T> implements AutoCloseable {
      * @param opcuaReader The OPC-UA reader implementation (with embedded connection)
      * @param arrowAdapter The Arrow adapter implementation
      */
-    public OPCUAArrowCollector(IOPCUAReader<T> opcuaReader, IArrowAdapter<T> arrowAdapter) {
+    public OPCUAArrowCollector(IOPCUAReader<TValue> opcuaReader, IArrowAdapter<TId, TValue> arrowAdapter) {
         this.opcuaReader = opcuaReader;
         this.arrowAdapter = arrowAdapter;
     }
@@ -73,15 +72,6 @@ public class OPCUAArrowCollector<T> implements AutoCloseable {
     }
     
     /**
-     * Gets the Arrow schema.
-     * 
-     * @return The Arrow schema
-     */
-    public Schema getSchema() {
-        return arrowAdapter.getSchema();
-    }
-    
-    /**
      * Checks if the collector is started and connected to the OPC-UA server.
      * 
      * @return true if started and connected, false otherwise
@@ -120,23 +110,23 @@ public class OPCUAArrowCollector<T> implements AutoCloseable {
     /**
      * Builder for creating OPCUAArrowCollector instances.
      * 
-     * @param <T> The type of scalar values
+     * @param <TValue> The type of scalar values
      */
-    public static class Builder<T> {
-        private IOPCUAReader<T> opcuaReader;
-        private IArrowAdapter<T> arrowAdapter;
+    public static class Builder<TId,TValue> {
+        private IOPCUAReader<TValue> opcuaReader;
+        private IArrowAdapter<TId,TValue> arrowAdapter;
         
-        public Builder<T> withOPCUAReader(IOPCUAReader<T> reader) {
+        public Builder<TId,TValue> withOPCUAReader(IOPCUAReader<TValue> reader) {
             this.opcuaReader = reader;
             return this;
         }
         
-        public Builder<T> withArrowAdapter(IArrowAdapter<T> adapter) {
+        public Builder<TId,TValue> withArrowAdapter(IArrowAdapter<TId,TValue> adapter) {
             this.arrowAdapter = adapter;
             return this;
         }
         
-        public OPCUAArrowCollector<T> build() {
+        public OPCUAArrowCollector<TId,TValue> build() {
             if (opcuaReader == null) {
                 throw new IllegalStateException("OPC-UA reader is required");
             }

@@ -1,4 +1,4 @@
-package com.opcua_arrow.arrow;
+package com.opcua_arrow.arrow.builders;
 
 import org.apache.arrow.vector.types.FloatingPointPrecision;
 import org.apache.arrow.vector.types.TimeUnit;

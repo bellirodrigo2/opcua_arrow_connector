@@ -16,17 +16,29 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Test implementation of IOPCUADataValue for testing purposes.
  */
-class TestDataValue<T> implements IOPCUADataValue<T> {
+class MockDataValue<T> implements IOPCUADataValue<T> {
     private final Instant sourceTimestamp;
     private final Instant serverTimestamp;
     private final T value;
     private final int statusCode;
 
-    public TestDataValue(Instant sourceTimestamp, Instant serverTimestamp, T value, int statusCode) {
+    public MockDataValue(Instant sourceTimestamp, Instant serverTimestamp, T value, int statusCode) {
         this.sourceTimestamp = sourceTimestamp;
         this.serverTimestamp = serverTimestamp;
         this.value = value;
         this.statusCode = statusCode;
+    }
+
+
+    
+    @Override
+    public String getNodeId() {
+        return null;
+    }
+
+    @Override
+    public Integer getPointId() {
+        return null;
     }
 
     @Override
@@ -74,9 +86,9 @@ class ArrowAdapterTest {
         try (ArrowAdapter<Double> adapter = new ArrowAdapter<>(nodeIds, Double.class, idLookup)) {
             
             List<IOPCUADataValue<Double>> data = Arrays.asList(
-                new TestDataValue<>(Instant.ofEpochSecond(1000), null, 3.14, 0),
-                new TestDataValue<>(Instant.ofEpochSecond(2000), null, 2.71, 0),
-                new TestDataValue<>(Instant.ofEpochSecond(3000), null, null, 0x80000000) // bad status
+                new MockDataValue<>(Instant.ofEpochSecond(1000), null, 3.14, 0),
+                new MockDataValue<>(Instant.ofEpochSecond(2000), null, 2.71, 0),
+                new MockDataValue<>(Instant.ofEpochSecond(3000), null, null, 0x80000000) // bad status
             );
             
             byte[] result = adapter.toArrowIPC(data);
@@ -97,9 +109,9 @@ class ArrowAdapterTest {
         try (ArrowAdapter<Integer> adapter = new ArrowAdapter<>(nodeIds, Integer.class, idLookup)) {
             
             List<IOPCUADataValue<Integer>> data = Arrays.asList(
-                new TestDataValue<>(Instant.ofEpochSecond(1000), null, 42, 0),
-                new TestDataValue<>(Instant.ofEpochSecond(2000), null, -123, 0),
-                new TestDataValue<>(Instant.ofEpochSecond(3000), null, null, 0x80000000) // bad status
+                new MockDataValue<>(Instant.ofEpochSecond(1000), null, 42, 0),
+                new MockDataValue<>(Instant.ofEpochSecond(2000), null, -123, 0),
+                new MockDataValue<>(Instant.ofEpochSecond(3000), null, null, 0x80000000) // bad status
             );
             
             byte[] result = adapter.toArrowIPC(data);
@@ -115,9 +127,9 @@ class ArrowAdapterTest {
         try (ArrowAdapter<Boolean> adapter = new ArrowAdapter<>(nodeIds, Boolean.class, idLookup)) {
             
             List<IOPCUADataValue<Boolean>> data = Arrays.asList(
-                new TestDataValue<>(Instant.ofEpochSecond(1000), null, true, 0),
-                new TestDataValue<>(Instant.ofEpochSecond(2000), null, false, 0),
-                new TestDataValue<>(Instant.ofEpochSecond(3000), null, null, 0x80000000) // bad status
+                new MockDataValue<>(Instant.ofEpochSecond(1000), null, true, 0),
+                new MockDataValue<>(Instant.ofEpochSecond(2000), null, false, 0),
+                new MockDataValue<>(Instant.ofEpochSecond(3000), null, null, 0x80000000) // bad status
             );
             
             byte[] result = adapter.toArrowIPC(data);
@@ -133,9 +145,9 @@ class ArrowAdapterTest {
         try (ArrowAdapter<String> adapter = new ArrowAdapter<>(nodeIds, String.class, idLookup)) {
             
             List<IOPCUADataValue<String>> data = Arrays.asList(
-                new TestDataValue<>(Instant.ofEpochSecond(1000), null, "hello", 0),
-                new TestDataValue<>(Instant.ofEpochSecond(2000), null, "world", 0),
-                new TestDataValue<>(Instant.ofEpochSecond(3000), null, null, 0x80000000) // bad status
+                new MockDataValue<>(Instant.ofEpochSecond(1000), null, "hello", 0),
+                new MockDataValue<>(Instant.ofEpochSecond(2000), null, "world", 0),
+                new MockDataValue<>(Instant.ofEpochSecond(3000), null, null, 0x80000000) // bad status
             );
             
             byte[] result = adapter.toArrowIPC(data);
@@ -152,9 +164,9 @@ class ArrowAdapterTest {
         try (ArrowAdapter<Double> adapter = new ArrowAdapter<>(nodeIds, Double.class, null)) {
             
             List<IOPCUADataValue<Double>> data = Arrays.asList(
-                new TestDataValue<>(Instant.ofEpochSecond(1000), null, 3.14, 0),
-                new TestDataValue<>(Instant.ofEpochSecond(2000), null, 2.71, 0),
-                new TestDataValue<>(Instant.ofEpochSecond(3000), null, 1.41, 0)
+                new MockDataValue<>(Instant.ofEpochSecond(1000), null, 3.14, 0),
+                new MockDataValue<>(Instant.ofEpochSecond(2000), null, 2.71, 0),
+                new MockDataValue<>(Instant.ofEpochSecond(3000), null, 1.41, 0)
             );
             
             byte[] result = adapter.toArrowIPC(data);
@@ -173,9 +185,9 @@ class ArrowAdapterTest {
             assertEquals(0, adapter.size());
             
             List<IOPCUADataValue<Integer>> data = Arrays.asList(
-                new TestDataValue<>(Instant.ofEpochSecond(1000), null, 1, 0),
-                new TestDataValue<>(Instant.ofEpochSecond(2000), null, 2, 0),
-                new TestDataValue<>(Instant.ofEpochSecond(3000), null, 3, 0)
+                new MockDataValue<>(Instant.ofEpochSecond(1000), null, 1, 0),
+                new MockDataValue<>(Instant.ofEpochSecond(2000), null, 2, 0),
+                new MockDataValue<>(Instant.ofEpochSecond(3000), null, 3, 0)
             );
             
             byte[] result = adapter.toArrowIPC(data);
@@ -192,9 +204,9 @@ class ArrowAdapterTest {
             
             // First batch
             List<IOPCUADataValue<Integer>> batch1 = Arrays.asList(
-                new TestDataValue<>(Instant.ofEpochSecond(1000), null, 1, 0),
-                new TestDataValue<>(Instant.ofEpochSecond(2000), null, 2, 0),
-                new TestDataValue<>(Instant.ofEpochSecond(3000), null, 3, 0)
+                new MockDataValue<>(Instant.ofEpochSecond(1000), null, 1, 0),
+                new MockDataValue<>(Instant.ofEpochSecond(2000), null, 2, 0),
+                new MockDataValue<>(Instant.ofEpochSecond(3000), null, 3, 0)
             );
             
             byte[] result1 = adapter.toArrowIPC(batch1);
@@ -203,9 +215,9 @@ class ArrowAdapterTest {
             
             // Second batch (should reuse the same builder)
             List<IOPCUADataValue<Integer>> batch2 = Arrays.asList(
-                new TestDataValue<>(Instant.ofEpochSecond(4000), null, 4, 0),
-                new TestDataValue<>(Instant.ofEpochSecond(5000), null, 5, 0),
-                new TestDataValue<>(Instant.ofEpochSecond(6000), null, 6, 0)
+                new MockDataValue<>(Instant.ofEpochSecond(4000), null, 4, 0),
+                new MockDataValue<>(Instant.ofEpochSecond(5000), null, 5, 0),
+                new MockDataValue<>(Instant.ofEpochSecond(6000), null, 6, 0)
             );
             
             byte[] result2 = adapter.toArrowIPC(batch2);
@@ -222,9 +234,9 @@ class ArrowAdapterTest {
         try (ArrowAdapter<Integer> adapter = new ArrowAdapter<>(nodeIds, Integer.class, idLookup)) {
             
             List<IOPCUADataValue<Integer>> data = Arrays.asList(
-                new TestDataValue<>(Instant.ofEpochSecond(1000), null, 1, 0),
-                new TestDataValue<>(Instant.ofEpochSecond(2000), null, 2, 0),
-                new TestDataValue<>(Instant.ofEpochSecond(3000), null, 3, 0)
+                new MockDataValue<>(Instant.ofEpochSecond(1000), null, 1, 0),
+                new MockDataValue<>(Instant.ofEpochSecond(2000), null, 2, 0),
+                new MockDataValue<>(Instant.ofEpochSecond(3000), null, 3, 0)
             );
             
             adapter.toArrowIPC(data);
@@ -242,8 +254,8 @@ class ArrowAdapterTest {
             
             // Wrong number of data points
             List<IOPCUADataValue<Integer>> data = Arrays.asList(
-                new TestDataValue<>(Instant.ofEpochSecond(1000), null, 1, 0),
-                new TestDataValue<>(Instant.ofEpochSecond(2000), null, 2, 0)
+                new MockDataValue<>(Instant.ofEpochSecond(1000), null, 1, 0),
+                new MockDataValue<>(Instant.ofEpochSecond(2000), null, 2, 0)
                 // Missing node3
             );
             
@@ -268,9 +280,9 @@ class ArrowAdapterTest {
         try (ArrowAdapter<Integer> adapter = new ArrowAdapter<>(nodeIds, Integer.class, idLookup)) {
             
             List<IOPCUADataValue<Integer>> data = Arrays.asList(
-                new TestDataValue<>(null, null, 1, 0), // null timestamp
-                new TestDataValue<>(Instant.ofEpochSecond(2000), null, 2, 0),
-                new TestDataValue<>(Instant.ofEpochSecond(3000), null, 3, 0)
+                new MockDataValue<>(null, null, 1, 0), // null timestamp
+                new MockDataValue<>(Instant.ofEpochSecond(2000), null, 2, 0),
+                new MockDataValue<>(Instant.ofEpochSecond(3000), null, 3, 0)
             );
             
             byte[] result = adapter.toArrowIPC(data);

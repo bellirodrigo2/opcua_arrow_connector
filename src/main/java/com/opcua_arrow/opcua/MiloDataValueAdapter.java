@@ -9,125 +9,79 @@ import org.eclipse.milo.opcua.stack.core.types.builtin.unsigned.UShort;
 
 import java.time.Instant;
 
-/**
- * Optimized adapter that wraps Milo's DataValue to implement IOPCUADataValue interface.
- * This isolates Milo-specific code to the OPC-UA implementation layer while leveraging
- * Milo's full precision and built-in methods.
- * 
- * @param <T> The type of value contained in this data value
- */
 public class MiloDataValueAdapter<T> implements IOPCUADataValue<T> {
-    
+
     private final DataValue dataValue;
-    private final Class<T> valueType;
-    
-    public MiloDataValueAdapter(DataValue dataValue, Class<T> valueType) {
+    private final String nodeId;
+    private final Integer pointId;
+
+    public MiloDataValueAdapter(DataValue dataValue, String nodeId, Integer pointId) {
         this.dataValue = dataValue;
-        this.valueType = valueType;
+        this.nodeId = nodeId;
+        this.pointId = pointId;
     }
-    
+
+
+    @Override
+    public String getNodeId() {
+        return nodeId;
+    }
+
+    @Override
+    public Integer getPointId() {
+        return pointId;
+    }
+
     @Override
     public Instant getSourceTimestamp() {
         DateTime sourceTime = dataValue.getSourceTime();
-        if (sourceTime == null || sourceTime.isNull()) {
-            return null;
-        }
-        
-        // Use Milo's built-in conversion with full precision
-        // This handles the OPC-UA epoch conversion and nanosecond precision correctly
+        if (sourceTime == null || sourceTime.isNull()) return null;
+
         Instant baseInstant = sourceTime.getJavaInstant();
-        
-        // Add picosecond precision if available (convert to nanoseconds)
-        UShort sourcePicos = dataValue.getSourcePicoseconds();
-        if (sourcePicos != null && sourcePicos.longValue() > 0) {
-            long additionalNanos = sourcePicos.longValue() / 1000; // Convert picoseconds to nanoseconds
-            baseInstant = baseInstant.plusNanos(additionalNanos);
+
+        UShort picos = dataValue.getSourcePicoseconds();
+        if (picos != null && picos.longValue() > 0) {
+            baseInstant = baseInstant.plusNanos(picos.longValue() / 1000);
         }
-        
+
         return baseInstant;
     }
-    
+
     @Override
     public Instant getServerTimestamp() {
         DateTime serverTime = dataValue.getServerTime();
-        if (serverTime == null || serverTime.isNull()) {
-            return null;
-        }
-        
-        // Use Milo's built-in conversion with full precision
-        // This handles the OPC-UA epoch conversion and nanosecond precision correctly
+        if (serverTime == null || serverTime.isNull()) return null;
+
         Instant baseInstant = serverTime.getJavaInstant();
-        
-        // Add picosecond precision if available (convert to nanoseconds)
-        UShort serverPicos = dataValue.getServerPicoseconds();
-        if (serverPicos != null && serverPicos.longValue() > 0) {
-            long additionalNanos = serverPicos.longValue() / 1000; // Convert picoseconds to nanoseconds
-            baseInstant = baseInstant.plusNanos(additionalNanos);
+
+        UShort picos = dataValue.getServerPicoseconds();
+        if (picos != null && picos.longValue() > 0) {
+            baseInstant = baseInstant.plusNanos(picos.longValue() / 1000);
         }
-        
+
         return baseInstant;
     }
-    
+
     @Override
     @SuppressWarnings("unchecked")
     public T getValue() {
         Variant variant = dataValue.getValue();
-        if (variant == null || variant.getValue() == null) {
-            return null;
-        }
-        
-        Object rawValue = variant.getValue();
-        try {
-            if (valueType.isInstance(rawValue)) {
-                return (T) rawValue;
-            } else {
-                return convertValue(rawValue, valueType);
-            }
-        } catch (Exception e) {
-            // Value conversion failed, return null
-            return null;
-        }
+        if (variant == null) return null;
+
+        Object raw = variant.getValue();
+        if (raw == null) return null;
+
+        return (T) raw; // "Pass-through", sem conversões
     }
-    
-    @SuppressWarnings("unchecked")
-    private static <T> T convertValue(Object rawValue, Class<T> valueType) {
-        if (rawValue == null) {
-            return null;
-        }
-        
-        if (valueType == Double.class) {
-            if (rawValue instanceof Number) {
-                return (T) Double.valueOf(((Number) rawValue).doubleValue());
-            }
-        } else if (valueType == Float.class) {
-            if (rawValue instanceof Number) {
-                return (T) Float.valueOf(((Number) rawValue).floatValue());
-            }
-        } else if (valueType == Boolean.class) {
-            return (T) Boolean.valueOf(rawValue.toString());
-        } else if (valueType == String.class) {
-            return (T) rawValue.toString();
-        } else if (valueType == Integer.class) {
-            if (rawValue instanceof Number) {
-                return (T) Integer.valueOf(((Number) rawValue).intValue());
-            }
-        } else if (valueType == Long.class) {
-            if (rawValue instanceof Number) {
-                return (T) Long.valueOf(((Number) rawValue).longValue());
-            }
-        }
-        
-        throw new IllegalArgumentException("Cannot convert " + rawValue.getClass() + " to " + valueType);
-    }
-    
+
     @Override
     public int getStatusCode() {
         StatusCode statusCode = dataValue.getStatusCode();
-        return statusCode != null 
-            ? (int) statusCode.getValue()
-            : 0x80000000; // Bad status code if null (high bit set indicates bad quality)
+        return statusCode != null
+                ? (int) statusCode.getValue()
+                : 0x80000000;
     }
-    
+
     @Override
     public boolean isGood() {
         StatusCode statusCode = dataValue.getStatusCode();

@@ -9,7 +9,21 @@ import java.time.Instant;
  * @param <T> The type of the value contained in this data value
  */
 public interface IOPCUADataValue<T> {
-    
+
+    /**
+        * Gets the node ID associated with this data value.
+        * 
+        * @return The node ID as a string   
+    */
+    String getNodeId();
+
+    /**
+     * Gets the point ID associated with this data value.
+     * 
+     * @return The point ID as an integer
+     */
+    Integer getPointId();
+
     /**
      * Gets the source timestamp of the data value.
      * 
@@ -44,4 +58,6 @@ public interface IOPCUADataValue<T> {
      * @return true if the data quality is good, false otherwise
      */
     boolean isGood();
+
+
 }

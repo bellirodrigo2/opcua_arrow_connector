@@ -2,6 +2,7 @@ package com.opcua_arrow.opcua;
 
 import com.opcua_arrow.interfaces.IOPCUAConnection;
 import com.opcua_arrow.interfaces.IOPCUAReader;
+import com.opcua_arrow.interfaces.IOPCUAValuesFilter;
 import com.opcua_arrow.interfaces.IRetryPolicy;
 import com.opcua_arrow.interfaces.IOPCUADataValue;
 import org.eclipse.milo.opcua.sdk.client.OpcUaClient;
@@ -28,15 +29,15 @@ public class MiloOPCUAReader<T> implements IOPCUAReader<T> {
     private static final Logger logger = LoggerFactory.getLogger(MiloOPCUAReader.class);
     
     private final List<String> nodeIds;
-    private final Class<T> valueType;
     private final IRetryPolicy retryPolicy;
     private final IOPCUAConnection connection;
+    private final IOPCUAValuesFilter<T,DataValue> valuesFilter;
     
-    public MiloOPCUAReader(List<String> nodeIds, Class<T> valueType, IOPCUAConnection connection, IRetryPolicy retryPolicy) {
+    public MiloOPCUAReader(List<String> nodeIds,IOPCUAConnection connection, IRetryPolicy retryPolicy,IOPCUAValuesFilter<T,DataValue> valuesFilter) {
         this.nodeIds = new ArrayList<>(nodeIds); // Defensive copy
-        this.valueType = valueType;
         this.connection = connection;
         this.retryPolicy = retryPolicy;
+        this.valuesFilter = valuesFilter;
     }
     
     @Override
@@ -51,7 +52,10 @@ public class MiloOPCUAReader<T> implements IOPCUAReader<T> {
                 new IllegalStateException("Reader is not started - call start() first"));
         }
         
-        return retryPolicy.executeWithRetry(() -> readInternal());
+        return retryPolicy.executeWithRetry(this::readInternal)
+        .thenApply(values -> {
+            return valuesFilter.filter(values);
+        });
     }
     
     @Override
@@ -80,7 +84,7 @@ public class MiloOPCUAReader<T> implements IOPCUAReader<T> {
         return connection != null && connection.isConnected();
     }
     
-    private CompletableFuture<List<IOPCUADataValue<T>>> readInternal() {
+    private CompletableFuture<DataValue[]> readInternal() {
         ReadWriteLock clientLock = connection.getClientLock();
         clientLock.readLock().lock();
         
@@ -106,14 +110,14 @@ public class MiloOPCUAReader<T> implements IOPCUAReader<T> {
             return client.read(0, TimestampsToReturn.Both, readValueIds)
                 .thenApply(response -> {
                     DataValue[] results = response.getResults();
-                    List<IOPCUADataValue<T>> dataValues = new ArrayList<>();
+                    // List<IOPCUADataValue<T>> dataValues = new ArrayList<>();
                     
-                    for (DataValue dataValue : results) {
-                        IOPCUADataValue<T> adaptedValue = new MiloDataValueAdapter<>(dataValue, valueType);
-                        dataValues.add(adaptedValue);
-                    }
+                    // for (DataValue dataValue : results) {
+                        // IOPCUADataValue<T> adaptedValue = new MiloDataValueAdapter<T>(dataValue);
+                        // dataValues.add(adaptedValue);
+                    // }
                     
-                    return dataValues;
+                    return results;
                 });
         } finally {
             clientLock.readLock().unlock();
@@ -125,10 +129,10 @@ public class MiloOPCUAReader<T> implements IOPCUAReader<T> {
     public List<String> getNodeIds() {
         return new ArrayList<>(nodeIds); // Return defensive copy
     }
-    
+
     @Override
-    public Class<T> getValueType() {
-        return valueType;
+    public List<Integer> getPointIds() {
+        return new ArrayList<>(); // Return defensive copy
     }
     
     private CompletableFuture<Void> validateNodes() {

@@ -1,14 +1,13 @@
 package com.opcua_arrow.interfaces;
 
 import java.util.List;
-import org.apache.arrow.vector.types.pojo.Schema;
 
 /**
  * Interface for converting OPC-UA values to Arrow IPC format.
  *
  * @param <T> The type of scalar values
  */
-public interface IArrowAdapter<T> {
+public interface IArrowAdapter<TId, TValue> {
     
     /**
      * Converts a list of OPC-UA data values to Arrow IPC Stream format.
@@ -16,12 +15,6 @@ public interface IArrowAdapter<T> {
      * @param data The OPC-UA data values to convert
      * @return The Arrow IPC Stream as bytes
      */
-    byte[] toArrowIPC(List<IOPCUADataValue<T>> data);
+    byte[] toArrowIPC(List<IOPCUADataValue<TValue>> data);
     
-    /**
-     * Gets the Arrow schema for the data.
-     * 
-     * @return The Arrow schema
-     */
-    Schema getSchema();
 }

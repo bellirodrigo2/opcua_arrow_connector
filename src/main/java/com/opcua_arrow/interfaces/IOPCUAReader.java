@@ -46,11 +46,13 @@ public interface IOPCUAReader<T> extends AutoCloseable {
      * @return The list of node ID strings
      */
     List<String> getNodeIds();
-    
+
     /**
-     * Gets the value type this reader handles.
+     * Gets the list of point IDs this reader is configured to read.
      * 
-     * @return The class representing the value type
+     * @return The list of point ID integer
      */
-    Class<T> getValueType();
+    List<Integer> getPointIds();
+
+
 }

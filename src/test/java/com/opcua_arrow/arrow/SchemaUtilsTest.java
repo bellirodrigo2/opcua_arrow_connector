@@ -21,7 +21,7 @@ class SchemaUtilsTest {
         idLookup.put("node1", 1);
         idLookup.put("node2", 2);
         
-        Schema schema = SchemaUtils.createSchema(Double.class, idLookup);
+        Schema schema = SchemaUtils.createSchema(Double.class, idLookup != null);
         
         assertNotNull(schema);
         List<Field> fields = schema.getFields();
@@ -65,7 +65,7 @@ class SchemaUtilsTest {
 
     @Test
     void testCreateSchemaWithoutIdLookup() {
-        Schema schema = SchemaUtils.createSchema(String.class, null);
+        Schema schema = SchemaUtils.createSchema(String.class, false);
         
         assertNotNull(schema);
         List<Field> fields = schema.getFields();
@@ -192,12 +192,12 @@ class SchemaUtilsTest {
         idLookup.put("test", 1);
         
         for (Class<?> type : supportedTypes) {
-            Schema schema = SchemaUtils.createSchema(type, idLookup);
+            Schema schema = SchemaUtils.createSchema(type, idLookup!=null);
             assertNotNull(schema, "Schema should not be null for type: " + type.getSimpleName());
             assertEquals(4, schema.getFields().size(), "Schema should have 4 fields for type: " + type.getSimpleName());
             
             // Test without idLookup too
-            Schema schemaNoLookup = SchemaUtils.createSchema(type, null);
+            Schema schemaNoLookup = SchemaUtils.createSchema(type, false);
             assertNotNull(schemaNoLookup, "Schema without lookup should not be null for type: " + type.getSimpleName());
             assertEquals(4, schemaNoLookup.getFields().size(), "Schema without lookup should have 4 fields for type: " + type.getSimpleName());
         }
@@ -205,7 +205,7 @@ class SchemaUtilsTest {
 
     @Test
     void testSchemaFieldOrder() {
-        Schema schema = SchemaUtils.createSchema(Integer.class, null);
+        Schema schema = SchemaUtils.createSchema(Integer.class, false);
         List<Field> fields = schema.getFields();
         
         assertEquals("pointid", fields.get(0).getName());
@@ -216,7 +216,7 @@ class SchemaUtilsTest {
 
     @Test
     void testSchemaFieldNullability() {
-        Schema schema = SchemaUtils.createSchema(Boolean.class, null);
+        Schema schema = SchemaUtils.createSchema(Boolean.class, false);
         List<Field> fields = schema.getFields();
         
         // pointid should be non-nullable
@@ -234,7 +234,7 @@ class SchemaUtilsTest {
 
     @Test
     void testTimestampFieldConfiguration() {
-        Schema schema = SchemaUtils.createSchema(String.class, null);
+        Schema schema = SchemaUtils.createSchema(String.class, false);
         Field timestampField = schema.getFields().get(1);
         
         assertTrue(timestampField.getType() instanceof ArrowType.Timestamp);
@@ -251,9 +251,9 @@ class SchemaUtilsTest {
     void testEmptyIdLookupVsNull() {
         // Empty map should still result in int32 pointid field
         Map<String, Integer> emptyIdLookup = new HashMap<>();
-        Schema schemaWithEmpty = SchemaUtils.createSchema(Double.class, emptyIdLookup);
+        Schema schemaWithEmpty = SchemaUtils.createSchema(Double.class, emptyIdLookup!=null);
         
-        Schema schemaWithNull = SchemaUtils.createSchema(Double.class, null);
+        Schema schemaWithNull = SchemaUtils.createSchema(Double.class, false);
         
         // pointid field should be different
         Field pointidFieldEmpty = schemaWithEmpty.getFields().get(0);

@@ -2,7 +2,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
-         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.opcua.arrow</groupId>
@@ -14,14 +14,18 @@
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- MAIS RECENTE DISPONÍVEL -->
+        <arrow.version>14.0.2</arrow.version>
+
         <milo.version>0.6.11</milo.version>
-        <arrow.version>14.0.0</arrow.version>
         <resilience4j.version>2.1.0</resilience4j.version>
         <slf4j.version>2.0.9</slf4j.version>
         <logback.version>1.4.11</logback.version>
     </properties>
 
     <dependencies>
+
         <!-- Eclipse Milo OPC-UA Client -->
         <dependency>
             <groupId>org.eclipse.milo</groupId>
@@ -29,19 +33,20 @@
             <version>${milo.version}</version>
         </dependency>
 
-        <!-- Apache Arrow -->
+        <!-- Apache Arrow (somente módulos necessários) -->
         <dependency>
             <groupId>org.apache.arrow</groupId>
             <artifactId>arrow-vector</artifactId>
             <version>${arrow.version}</version>
         </dependency>
+
         <dependency>
             <groupId>org.apache.arrow</groupId>
-            <artifactId>arrow-memory-netty</artifactId>
+            <artifactId>arrow-memory-core</artifactId>
             <version>${arrow.version}</version>
         </dependency>
 
-        <!-- Resilience4j for retry policy -->
+        <!-- Resilience4j -->
         <dependency>
             <groupId>io.github.resilience4j</groupId>
             <artifactId>resilience4j-retry</artifactId>
@@ -54,6 +59,7 @@
             <artifactId>slf4j-api</artifactId>
             <version>${slf4j.version}</version>
         </dependency>
+
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
@@ -67,6 +73,7 @@
             <version>5.10.0</version>
             <scope>test</scope>
         </dependency>
+
     </dependencies>
 
     <build>
@@ -80,6 +87,7 @@
                     <target>11</target>
                 </configuration>
             </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
@@ -90,4 +98,5 @@
             </plugin>
         </plugins>
     </build>
+
 </project>
