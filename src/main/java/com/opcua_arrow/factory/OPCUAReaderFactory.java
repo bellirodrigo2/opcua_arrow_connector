@@ -7,8 +7,7 @@ import com.opcua_arrow.interfaces.IOPCUAReader;
 import com.opcua_arrow.interfaces.IRetryPolicy;
 import com.opcua_arrow.opcua.MiloOPCUAConnection;
 import com.opcua_arrow.opcua.MiloOPCUAReader;
-import com.opcua_arrow.opcua.filters.MiloEqualValuesFilter;
-import com.opcua_arrow.opcua.filters.MiloValuesFilter;
+import com.opcua_arrow.opcua.filters.BaseMiloValuesFilter;
 import com.opcua_arrow.retry.Resilience4jRetryPolicy;
 
 import java.util.List;
@@ -30,20 +29,6 @@ public class OPCUAReaderFactory {
             config = new RetryPolicyConfig(); // Use defaults
         }
         return new Resilience4jRetryPolicy(config);
-    }
-
-    /**
-     * Creates an equal values filter.
-     * 
-     * @param nodeIds The list of node IDs
-     * @param idLookup Optional ID lookup map
-     * @return A new equal values filter
-     */
-    private static <T> MiloEqualValuesFilter<T> createEqualValuesFilter(
-            List<String> nodeIds,
-            Map<String, Integer> idLookup) {
-        
-        return new MiloEqualValuesFilter<T>(nodeIds, idLookup);
     }
 
     /**
@@ -78,7 +63,7 @@ public class OPCUAReaderFactory {
 
         IRetryPolicy retryPolicy = createRetryPolicy(retryConfig);
         
-        MiloValuesFilter<T> valuesFilter = createEqualValuesFilter(nodeIds, idLookup);
+        BaseMiloValuesFilter<T> valuesFilter = OPCUAValuesFilterFactory.createValuesFilter(clientConfig.getFilterType(),nodeIds, idLookup);
 
         IOPCUAConnection connection = createOPCUAConnection(clientConfig, retryPolicy);
 

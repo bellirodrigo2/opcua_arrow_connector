@@ -1,6 +1,7 @@
 package com.opcua_arrow.factory;
 
 import com.opcua_arrow.collector.OPCUAArrowCollector;
+import com.opcua_arrow.config.DataValueConfig;
 import com.opcua_arrow.config.OPCUAClientConfig;
 import com.opcua_arrow.config.RetryPolicyConfig;
 import com.opcua_arrow.interfaces.IArrowAdapter;
@@ -20,23 +21,22 @@ public class CollectorFactory {
      * @param <TValue> The type of scalar values
      * @param clientConfig The OPC-UA client configuration
      * @param retryConfig The retry policy configuration
-     * @param nodeIds The list of node IDs to read
-     * @param valueType The class of the value type
-     * @param idLookup Optional ID lookup map for converting node IDs to integers
+     * @param dataValueConfig The data value configuration
      * @return A new OPC-UA Arrow collector
      */
     public static <TId,TValue> OPCUAArrowCollector<TId,TValue> createCollector(
             OPCUAClientConfig clientConfig,
             RetryPolicyConfig retryConfig,
-            List<String> nodeIds,
-            Map<String, Integer> idLookup,
-            String valueType,
-            int initialCapacity, boolean compressionEnabled) {
+            DataValueConfig dataValueConfig
+        ) {
         
+        Map<String, Integer> idLookup = dataValueConfig.getIdLookup();
+        List<String> nodeIds = dataValueConfig.getNodeIds();
+
         IOPCUAReader<TValue> opcuaReader = OPCUAReaderFactory.createOPCUAReader(nodeIds, idLookup, retryConfig, clientConfig);
         
         // Create Arrow adapter
-        IArrowAdapter<TId,TValue> arrowAdapter = ArrowAdapterFactory.createArrowAdapter(nodeIds, idLookup, valueType, initialCapacity,compressionEnabled);
+        IArrowAdapter<TId,TValue> arrowAdapter = ArrowAdapterFactory.createArrowAdapter(dataValueConfig);
         
         // Build and return collector
         return new OPCUAArrowCollector.Builder<TId,TValue>()

@@ -15,6 +15,7 @@ public class OPCUAClientConfig {
     private Duration sessionTimeout = Duration.ofMinutes(2);
     private Duration keepAliveInterval = Duration.ofSeconds(30);
     private Map<String, Object> additionalProperties = new HashMap<>();
+    private String filterType;
 
     public String getServerUrl() {
         return serverUrl;
@@ -82,5 +83,8 @@ public class OPCUAClientConfig {
     public OPCUAClientConfig addProperty(String key, Object value) {
         this.additionalProperties.put(key, value);
         return this;
+    }
+    public String getFilterType() {
+        return filterType;
     }
 }

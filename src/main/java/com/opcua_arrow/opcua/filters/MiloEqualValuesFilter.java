@@ -9,7 +9,7 @@ import org.eclipse.milo.opcua.stack.core.types.builtin.DataValue;
 import java.util.ArrayList;
 import java.util.Map;
 
-public class MiloEqualValuesFilter<T> extends MiloValuesFilter<T> {
+public class MiloEqualValuesFilter<T> extends BaseMiloValuesFilter<T> {
     private DataValue[] lastValue = null;
     private List<Integer> pointIds;
     private List<String> nodeIds;

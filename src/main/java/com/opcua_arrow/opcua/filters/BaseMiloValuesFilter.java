@@ -11,12 +11,12 @@ import org.eclipse.milo.opcua.stack.core.types.builtin.DataValue;
 import java.util.ArrayList;
 import java.util.Map;
 
-public class MiloValuesFilter<T> implements IOPCUAValuesFilter<T, DataValue> {
+public class BaseMiloValuesFilter<T> implements IOPCUAValuesFilter<T, DataValue> {
     private DataValue[] lastValue = null;
     private List<Integer> pointIds;
     private List<String> nodeIds;
 
-    public MiloValuesFilter(List<String> nodeIds, Map<String, Integer> idLookup) {
+    public BaseMiloValuesFilter(List<String> nodeIds, Map<String, Integer> idLookup) {
         this.nodeIds = nodeIds;
         if (idLookup == null) {
             this.pointIds = null;
@@ -31,8 +31,6 @@ public class MiloValuesFilter<T> implements IOPCUAValuesFilter<T, DataValue> {
 
     @Override
     public List<IOPCUADataValue<T>> filter(DataValue[] values) {
-
-        lastValue = values;
         List<IOPCUADataValue<T>> initialValues = new ArrayList<>();
         for (int i = 0; i < values.length; i++) {
             String nodeId = nodeIds.get(i);
