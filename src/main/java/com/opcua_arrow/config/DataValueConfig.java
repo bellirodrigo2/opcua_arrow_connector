@@ -1,32 +1,36 @@
 package com.opcua_arrow.config;
 
-import java.util.List;
-import java.util.Map;
-
 public class DataValueConfig {
-    private List<String> nodeIds;
-    private Map<String, Integer> idLookup;
-    private String valueType;
-    private int initialCapacity;
-    private boolean compressionEnabled;
+    private String nodeId;
+    private String valueType; // define numeric, string, boolean
 
-    public List<String> getNodeIds() {
-        return nodeIds;
+    private Integer pointId; // unique integer id
+    private String group; // map to partitions
+    private FilterConfig filter;
+
+    private long interval_seconds; // loop interval
+
+    public String getNodeId() {
+        return nodeId;
     }
-    public void setNodeIds(List<String> nodeIds) {
-        this.nodeIds = nodeIds;
+
+    public Integer getPointId() {
+        return pointId;
     }
-    public Map<String, Integer> getIdLookup() {
-        return idLookup;
-    }
+
     public String getValueType() {
         return valueType;
     }
-    public int getInitialCapacity() {
-        return initialCapacity;
+
+    public String getGroup() {
+        return group;
     }
 
-    public boolean isCompressionEnabled() {
-        return compressionEnabled;
+    public long getInterval() {
+        return interval_seconds;
+    }
+
+    public FilterConfig getFilter() {
+        return filter;
     }
 }
