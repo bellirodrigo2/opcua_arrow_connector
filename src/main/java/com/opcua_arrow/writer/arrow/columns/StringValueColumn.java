@@ -6,7 +6,7 @@ import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VarCharVector;
 
-public class StringValueColumn implements IValueColumn<String> {
+public class StringValueColumn implements IValueColumn {
 
     private VarCharVector vector;
 
@@ -16,11 +16,14 @@ public class StringValueColumn implements IValueColumn<String> {
     }
 
     @Override
-    public void set(int row, String value) {
+    public void set(int row, Object value) {
         if (value == null)
             vector.setNull(row);
-        else
-            vector.setSafe(row, value.getBytes());
+        else {
+            String stringValue = (String) value;
+            vector.setSafe(row, stringValue.getBytes());
+        }
+
     }
 
     @Override

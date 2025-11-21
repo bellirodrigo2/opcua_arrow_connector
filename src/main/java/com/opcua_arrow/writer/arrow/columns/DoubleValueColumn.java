@@ -6,7 +6,7 @@ import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.Float8Vector;
 
-public class DoubleValueColumn implements IValueColumn<Double> {
+public class DoubleValueColumn implements IValueColumn {
 
     private Float8Vector vector;
 
@@ -16,11 +16,11 @@ public class DoubleValueColumn implements IValueColumn<Double> {
     }
 
     @Override
-    public void set(int row, Double value) {
+    public void set(int row, Object value) {
         if (value == null)
             vector.setNull(row);
         else
-            vector.setSafe(row, value);
+            vector.setSafe(row, (Double) value);
     }
 
     @Override

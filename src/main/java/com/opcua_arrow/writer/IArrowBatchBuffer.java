@@ -1,9 +1,9 @@
 package com.opcua_arrow.writer;
 
-public interface IArrowBatchBuffer<T> extends AutoCloseable {
+public interface IArrowBatchBuffer extends AutoCloseable {
 
     /** Add one registry */
-    void append(int id, long timestampNanos, T value, int statusCode);
+    void append(int id, long timestampNanos, Object value, int statusCode);
 
     /** Remove last register */
     void pop();

@@ -18,13 +18,13 @@ import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.ipc.ArrowStreamWriter;
 import org.apache.arrow.vector.types.pojo.Schema;
 
-public class BaseArrowBatchBuilder<T> implements IArrowBatchBuffer<T> {
+public class BaseArrowBatchBuilder implements IArrowBatchBuffer {
 
     protected final BufferAllocator allocator;
     protected final Schema schema;
     protected final boolean compress;
 
-    protected final IValueColumn<T> valueColumn;
+    protected final IValueColumn valueColumn;
 
     protected VectorSchemaRoot root;
     protected IntVector idVector;
@@ -39,7 +39,7 @@ public class BaseArrowBatchBuilder<T> implements IArrowBatchBuffer<T> {
             int initialCapacity,
             BufferAllocator allocator,
             boolean compress,
-            IValueColumn<T> valueColumn) {
+            IValueColumn valueColumn) {
         this.schema = schema;
         this.capacity = initialCapacity;
         this.allocator = allocator;
@@ -51,7 +51,7 @@ public class BaseArrowBatchBuilder<T> implements IArrowBatchBuffer<T> {
     public BaseArrowBatchBuilder(
             int initialCapacity,
             boolean compress,
-            IValueColumn<T> valueColumn) {
+            IValueColumn valueColumn) {
         this(SchemaUtils.createSchema(valueColumn.getClass()), initialCapacity,
                 new RootAllocator(), compress, valueColumn);
     }
@@ -130,7 +130,7 @@ public class BaseArrowBatchBuilder<T> implements IArrowBatchBuffer<T> {
     }
 
     @Override
-    public void append(int id, long timestampNanos, T value, int statusCode) {
+    public void append(int id, long timestampNanos, Object value, int statusCode) {
         ensureCapacityLocked();
 
         int row = count;

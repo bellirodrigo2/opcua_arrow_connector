@@ -14,17 +14,17 @@ import com.opcua_arrow.writer.IWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class WriterArrowAdapter<T> implements IWriter<T> {
+public class WriterArrowAdapter implements IWriter {
 
     private static final Logger logger = LoggerFactory.getLogger(WriterArrowAdapter.class);
-    private final Map<String, IArrowBatchBuffer<T>> batchBuffers;
-    private final BlockingQueue<Map<String, List<IDataValue<T>>>> source;
+    private final Map<String, IArrowBatchBuffer> batchBuffers;
+    private final BlockingQueue<Map<String, List<IDataValue<?>>>> source;
     private final ISend sender;
 
     private final long pollTimeoutSeconds;
 
-    public WriterArrowAdapter(Map<String, IArrowBatchBuffer<T>> batchBuffers,
-            BlockingQueue<Map<String, List<IDataValue<T>>>> source,
+    public WriterArrowAdapter(Map<String, IArrowBatchBuffer> batchBuffers,
+            BlockingQueue<Map<String, List<IDataValue<?>>>> source,
             long poll_timeout_seconds,
             ISend sender) {
         this.batchBuffers = batchBuffers;
@@ -37,14 +37,14 @@ public class WriterArrowAdapter<T> implements IWriter<T> {
     public void write() {
         try {
             while (true) {
-                Map<String, List<IDataValue<T>>> data = source.poll(pollTimeoutSeconds, TimeUnit.SECONDS);
+                Map<String, List<IDataValue<?>>> data = source.poll(pollTimeoutSeconds, TimeUnit.SECONDS);
                 if (data == null) {
                     logger.debug("No data to write, continuing...");
                     continue;
                 }
 
                 for (String group : data.keySet()) {
-                    List<IDataValue<T>> nodeData = data.get(group);
+                    List<IDataValue<?>> nodeData = data.get(group);
                     if (!nodeData.isEmpty()) {
                         ingestData(group, nodeData);
                     }
@@ -55,23 +55,23 @@ public class WriterArrowAdapter<T> implements IWriter<T> {
         }
     }
 
-    private void ingestData(String group, List<IDataValue<T>> nodeData) {
+    private void ingestData(String group, List<IDataValue<?>> nodeData) {
 
-        IArrowBatchBuffer<T> batchBuffer = batchBuffers.get(group);
+        IArrowBatchBuffer batchBuffer = batchBuffers.get(group);
         if (batchBuffer == null) {
             logger.warn("No batch buffer found for group: " + group);
             return;
         }
 
-        for (IDataValue<T> dataValue : nodeData) {
+        for (IDataValue<?> dataValue : nodeData) {
 
-            IOPCUADataValue<T> opcData = dataValue.getValue();
+            IOPCUADataValue<?> opcData = dataValue.getValue();
 
             long timestamp = opcData.getTimestampLong();
             int id = dataValue.getParams().getPointId();
 
             // Get value (null if bad status)
-            T value = opcData.isGood() ? opcData.getValue() : null;
+            Object value = opcData.isGood() ? opcData.getValue() : null;
 
             int statusCode = opcData.getStatusCode();
 
@@ -96,12 +96,12 @@ public class WriterArrowAdapter<T> implements IWriter<T> {
         }
     }
 
-    // private void groupByNodeId(List<IDataValue<T>> data) {
-    // for (List<IDataValue<T>> list : groupedData.values()) {
+    // private void groupByNodeId(List<IDataValue<?>> data) {
+    // for (List<IDataValue<?>> list : groupedData.values()) {
     // list.clear();
     // }
 
-    // for (IDataValue<T> dataValue : data) {
+    // for (IDataValue<?> dataValue : data) {
     // String nodeId = dataValue.getParams().getGroup();
     // groupedData.computeIfAbsent(nodeId, k -> new ArrayList<>()).add(dataValue);
     // }

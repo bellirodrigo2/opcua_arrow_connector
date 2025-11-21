@@ -4,11 +4,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import com.opcua_arrow.opcua.IOPCUADataValue;
 import com.opcua_arrow.opcua.IOPCUAReader;
 
 import org.slf4j.Logger;
@@ -23,16 +25,18 @@ public class LoopReader implements IReader {
     private final IOPCUAReader<?> opcuaReader;
 
     private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-
     private ScheduledFuture<?> scheduledTask;
 
+    private final BlockingQueue<List<IOPCUADataValue<?>>> queue;
+
     public LoopReader(Long intervalSeconds, Map<Long, Set<String>> nodeIdsIntervalMap,
-            IOPCUAReader<?> opcuaReader) {
+            IOPCUAReader<?> opcuaReader, BlockingQueue<List<IOPCUADataValue<?>>> queue) {
 
         this.intervalSeconds = intervalSeconds;
         this.nodeIdsIntervalMap = nodeIdsIntervalMap;
         this.nodeIds = new ArrayList<>(nodeIdsIntervalMap.get(intervalSeconds));
         this.opcuaReader = opcuaReader;
+        this.queue = queue;
     }
 
     @Override
@@ -46,9 +50,21 @@ public class LoopReader implements IReader {
         logger.info("Starting scheduled task with interval: {} seconds", intervalSeconds);
         scheduledTask = executor.scheduleAtFixedRate(() -> {
 
-            opcuaReader.read(nodeIds);
+            opcuaReader.read(nodeIds)
+                    .thenAccept(values -> {
+                        try {
+                            List<IOPCUADataValue<?>> safeList = new ArrayList<>(values);
+                            queue.put(safeList);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
+                    })
+                    .exceptionally(ex -> {
+                        logger.error("Read error", ex);
+                        return null;
+                    });
 
-            // Atualizar apenas se mudou
+            // Atualizar lista de nós
             Set<String> newSet = nodeIdsIntervalMap.get(intervalSeconds);
             if (newSet.size() != nodeIds.size() || !nodeIds.containsAll(newSet)) {
                 nodeIds.clear();

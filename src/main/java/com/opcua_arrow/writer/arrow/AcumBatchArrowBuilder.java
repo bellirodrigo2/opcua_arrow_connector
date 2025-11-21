@@ -3,21 +3,21 @@ package com.opcua_arrow.writer.arrow;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.types.pojo.Schema;
 
-public class AcumBatchArrowBuilder<T> extends BaseArrowBatchBuilder<T> {
+public class AcumBatchArrowBuilder extends BaseArrowBatchBuilder {
 
     public AcumBatchArrowBuilder(
             Schema schema,
             int initialCapacity,
             BufferAllocator allocator,
             boolean compress,
-            IValueColumn<T> valueColumn) {
+            IValueColumn valueColumn) {
         super(schema, initialCapacity, allocator, compress, valueColumn);
     }
 
     public AcumBatchArrowBuilder(
             int initialCapacity,
             boolean compress,
-            IValueColumn<T> valueColumn) {
+            IValueColumn valueColumn) {
         super(initialCapacity, compress, valueColumn);
     }
 

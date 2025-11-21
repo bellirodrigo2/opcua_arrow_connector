@@ -6,7 +6,7 @@ import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.IntVector;
 
-public class IntegerValueColumn implements IValueColumn<Integer> {
+public class IntegerValueColumn implements IValueColumn {
 
     private IntVector vector;
 
@@ -16,11 +16,11 @@ public class IntegerValueColumn implements IValueColumn<Integer> {
     }
 
     @Override
-    public void set(int row, Integer value) {
+    public void set(int row, Object value) {
         if (value == null)
             this.vector.setNull(row);
         else
-            this.vector.setSafe(row, value);
+            this.vector.setSafe(row, (Integer) value);
     }
 
     @Override

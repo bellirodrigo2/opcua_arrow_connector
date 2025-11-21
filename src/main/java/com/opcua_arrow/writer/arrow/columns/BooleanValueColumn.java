@@ -6,7 +6,7 @@ import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.BitVector;
 import org.apache.arrow.vector.FieldVector;
 
-public class BooleanValueColumn implements IValueColumn<Boolean> {
+public class BooleanValueColumn implements IValueColumn {
 
     private BitVector vector;
 
@@ -16,11 +16,11 @@ public class BooleanValueColumn implements IValueColumn<Boolean> {
     }
 
     @Override
-    public void set(int row, Boolean value) {
+    public void set(int row, Object value) {
         if (value == null)
             vector.setNull(row);
         else
-            vector.setSafe(row, value ? 1 : 0);
+            vector.setSafe(row, (Boolean) value ? 1 : 0);
     }
 
     @Override
@@ -49,4 +49,5 @@ public class BooleanValueColumn implements IValueColumn<Boolean> {
     public Class<Boolean> getValueClass() {
         return Boolean.class;
     }
+
 }

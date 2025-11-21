@@ -2,7 +2,6 @@ package com.opcua_arrow.opcua.milo;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.stream.Collectors;
@@ -19,8 +18,6 @@ import org.eclipse.milo.opcua.stack.core.types.builtin.NodeId;
 import org.eclipse.milo.opcua.stack.core.types.builtin.QualifiedName;
 import org.eclipse.milo.opcua.stack.core.types.enumerated.TimestampsToReturn;
 import org.eclipse.milo.opcua.stack.core.types.structured.ReadValueId;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * OPC-UA reader implementation using Eclipse Milo.
@@ -30,35 +27,23 @@ import org.slf4j.LoggerFactory;
  * @param <T> The type of values to read
  */
 public class MiloOPCUAReader<T> implements IOPCUAReader<T> {
-    private static final Logger logger = LoggerFactory.getLogger(MiloOPCUAReader.class);
 
     private final IRetryPolicy retryPolicy;
     private final IOPCUAConnection connection;
-    private final BlockingQueue<List<IOPCUADataValue<T>>> queue;
 
-    public MiloOPCUAReader(IOPCUAConnection connection, IRetryPolicy retryPolicy,
-            BlockingQueue<List<IOPCUADataValue<T>>> queue) {
+    public MiloOPCUAReader(IOPCUAConnection connection, IRetryPolicy retryPolicy) {
         this.connection = connection;
         this.retryPolicy = retryPolicy;
-        this.queue = queue;
     }
 
     @Override
-    public CompletableFuture<Void> read(List<String> nodeIds) {
+    public CompletableFuture<List<IOPCUADataValue<T>>> read(List<String> nodeIds) {
         if (connection == null) {
             return CompletableFuture.failedFuture(
                     new IllegalArgumentException("Connection is null"));
         }
 
-        return retryPolicy.executeWithRetry(() -> readInternal(nodeIds)
-                .thenAccept(values -> {
-                    try {
-                        queue.put(values);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        logger.error("Interrupted while adding value to queue", e);
-                    }
-                }));
+        return retryPolicy.executeWithRetry(() -> readInternal(nodeIds));
     }
 
     @Override
