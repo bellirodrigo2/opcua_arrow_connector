@@ -7,10 +7,11 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import com.opcua_arrow.data_point.DataWriteGroup;
+import com.opcua_arrow.data_point.IDataPointEqual;
+import com.opcua_arrow.data_point.opcua.DataPointParams;
+import com.opcua_arrow.data_point.opcua.DataValue;
 import com.opcua_arrow.opcua.IOPCUADataValue;
-import com.opcua_arrow.transform.IDataPointEqual;
-import com.opcua_arrow.transform.IDataPointParams;
-import com.opcua_arrow.transform.IDataValue;
 import com.opcua_arrow.transform.ITransform;
 
 import org.slf4j.Logger;
@@ -20,14 +21,14 @@ public class DataTransform implements ITransform {
 
     private static final Logger logger = LoggerFactory.getLogger(DataTransform.class);
     private final BlockingQueue<List<IOPCUADataValue<?>>> source;
-    private final BlockingQueue<Map<String, List<IDataValue<?>>>> sink;
-    private final Map<String, IDataPointParams> paramsMap;
+    private final BlockingQueue<Map<DataWriteGroup, List<DataValue<?>>>> sink;
+    private final Map<String, DataPointParams> paramsMap;
     private final long pollTimeoutSeconds;
-    private final Map<String, List<IDataValue<?>>> groupedDataValues = new HashMap<>();
+    private final Map<DataWriteGroup, List<DataValue<?>>> groupedDataValues = new HashMap<>();
     private final List<List<IOPCUADataValue<?>>> batchList = new ArrayList<>();
 
     public DataTransform(BlockingQueue<List<IOPCUADataValue<?>>> source, long pollTimeoutSeconds,
-            BlockingQueue<Map<String, List<IDataValue<?>>>> sink, Map<String, IDataPointParams> paramsMap) {
+            BlockingQueue<Map<DataWriteGroup, List<DataValue<?>>>> sink, Map<String, DataPointParams> paramsMap) {
         this.source = source;
         this.sink = sink;
         this.paramsMap = paramsMap;
@@ -39,7 +40,7 @@ public class DataTransform implements ITransform {
 
         try {
             while (true) {
-                for (List<IDataValue<?>> list : groupedDataValues.values()) {
+                for (List<DataValue<?>> list : groupedDataValues.values()) {
                     list.clear();
                 }
                 batchList.clear();
@@ -75,12 +76,12 @@ public class DataTransform implements ITransform {
 
         for (IOPCUADataValue<?> opcuaval : opcuaValues) {
             String nodeId = opcuaval.getNodeId();
-            IDataPointParams params = paramsMap.get(nodeId);
+            DataPointParams params = paramsMap.get(nodeId);
             if (params == null) {
                 logger.warn("No parameters found for nodeId: " + nodeId);
                 continue;
             }
-            String group = params.getGroup();
+            DataWriteGroup group = params.getWriteGroup();
             IDataPointEqual equalChecker = params.getEquals();
             if (equalChecker != null && !equalChecker.isEqual(opcuaval)) {
                 groupedDataValues.computeIfAbsent(group, k -> new ArrayList<>())

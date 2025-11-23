@@ -1,34 +1,52 @@
 package com.opcua_arrow.context;
 
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.opcua_arrow.config.DataValueConfig;
-import com.opcua_arrow.factory.transform.FilterFactory;
-import com.opcua_arrow.transform.IDataPointEqual;
-import com.opcua_arrow.transform.IDataPointParams;
-import com.opcua_arrow.transform.opcua.DataPointParams;
+import com.google.inject.Inject;
+import com.opcua_arrow.batch_builder.IArrowBatchBuffer;
+import com.opcua_arrow.data_point.DataReadGroup;
+import com.opcua_arrow.data_point.DataWriteGroup;
+import com.opcua_arrow.data_point.opcua.DataPointParams;
+import com.opcua_arrow.di.FactoryModule.BatchBufferFactory;
+import com.opcua_arrow.di.FactoryModule.ReadTaskFactory;
+import com.opcua_arrow.read.IReader;
+import com.opcua_arrow.read.ReadTask;
+import com.opcua_arrow.transform.ITransform;
+import com.opcua_arrow.writer.IWriter;
 
 public class Context {
 
-    private final Map<String, IDataPointParams> paramsMap;
-    private final Map<Long, Set<String>> nodeIdsIntervalMap;
-    private final IntervalUpdateCallback callback;
+    private final Map<String, DataPointParams> paramsMap;
+    private final IReader reader;
+    private final IWriter writer;
+    private final ITransform transform;
 
-    public Context(Map<String, IDataPointParams> paramsMap,
-            List<DataValueConfig> configList,
-            IntervalUpdateCallback intervalUpdateCallback) {
+    // Factories injetadas diretamente
+    private final ReadTaskFactory readTaskFactory;
+    private final BatchBufferFactory batchBufferFactory;
+
+    // Mapas compartilhados injetados
+    private final Map<DataReadGroup, ReadTask> readersMap;
+    private final Map<DataWriteGroup, IArrowBatchBuffer> batchBuffers;
+    private final AtomicBoolean running = new AtomicBoolean(false);
+
+    @Inject
+    public Context(Map<String, DataPointParams> paramsMap,
+            IReader reader, IWriter writer, ITransform transform,
+            ReadTaskFactory readTaskFactory, BatchBufferFactory batchBufferFactory,
+            Map<DataReadGroup, ReadTask> readersMap,
+            Map<DataWriteGroup, IArrowBatchBuffer> batchBuffers) {
 
         this.paramsMap = ensureConcurrent(paramsMap);
-        this.nodeIdsIntervalMap = new ConcurrentHashMap<>();
-        this.callback = intervalUpdateCallback;
-
-        for (DataValueConfig config : configList) {
-            insertParams(config);
-            insertNodeInterval(config);
-        }
+        this.reader = reader;
+        this.writer = writer;
+        this.transform = transform;
+        this.readTaskFactory = readTaskFactory;
+        this.batchBufferFactory = batchBufferFactory;
+        this.readersMap = readersMap;
+        this.batchBuffers = batchBuffers;
     }
 
     private <K, V> Map<K, V> ensureConcurrent(Map<K, V> map) {
@@ -37,94 +55,94 @@ public class Context {
                 : new ConcurrentHashMap<>(map);
     }
 
-    // =====================================================================
-    // PUBLIC UPDATE — atomic inside each map (not whole method)
-    // =====================================================================
-    public void update(DataValueConfig config) {
-        String nodeId = config.getNodeId();
-
-        Long oldInterval = findOldInterval(nodeId);
-        Long newInterval = config.getInterval();
-
-        // always update params
-        updateParams(config);
-
-        // only update interval map if interval changed
-        if (oldInterval == null || !newInterval.equals(oldInterval)) {
-            updateNodeInterval(nodeId, oldInterval, newInterval);
-            if (callback != null) {
-                callback.onIntervalUpdate(nodeId, oldInterval, newInterval);
+    public void delete(String nodeId) {
+        DataPointParams existing = paramsMap.remove(nodeId);
+        if (existing != null) {
+            DataReadGroup readGroup = existing.getReadGroup();
+            reader.removeNodeId(readGroup, nodeId);
+            DataWriteGroup writeGroup = existing.getWriteGroup();
+            if (!hasDataWriteGroup(writeGroup)) {
+                batchBuffers.remove(writeGroup);
             }
         }
     }
 
-    // =====================================================================
-    // HELPERS
-    // =====================================================================
-
-    /** Finds the old interval where this nodeId was registered */
-    private Long findOldInterval(String nodeId) {
-        for (Map.Entry<Long, Set<String>> entry : nodeIdsIntervalMap.entrySet()) {
-            if (entry.getValue().contains(nodeId)) {
-                return entry.getKey();
+    private boolean hasDataWriteGroup(DataWriteGroup writeGroup) {
+        for (DataPointParams params : paramsMap.values()) {
+            if (params.getWriteGroup().equals(writeGroup)) {
+                return true;
             }
         }
-        return null; // NodeID not yet registered
+        return false;
     }
 
-    // =====================================================================
-    // PARAM MAP METHODS
-    // =====================================================================
+    public void update(DataPointParams params) {
+        String nodeId = params.getNodeId();
 
-    private IDataPointParams createDataPointParams(DataValueConfig config) {
-        IDataPointEqual equals = FilterFactory.createFilter(config.getFilter());
-        return new DataPointParams(config.getPointId(), equals, config.getGroup());
-    }
+        DataPointParams existing = paramsMap.get(nodeId);
+        DataWriteGroup newWriteGroup = params.getWriteGroup();
+        DataReadGroup newReadGroup = params.getReadGroup();
 
-    private void insertParams(DataValueConfig config) {
-        paramsMap.put(config.getNodeId(), createDataPointParams(config));
-    }
+        if (existing == null) {
+            paramsMap.put(nodeId, params);
 
-    /** Atomic update only inside paramsMap */
-    private void updateParams(DataValueConfig config) {
-        paramsMap.compute(config.getNodeId(), (nodeId, oldParams) -> createDataPointParams(config));
-    }
-
-    // =====================================================================
-    // INTERVAL MAP METHODS
-    // =====================================================================
-
-    private void insertNodeInterval(DataValueConfig config) {
-        Long interval = config.getInterval();
-        String nodeId = config.getNodeId();
-
-        nodeIdsIntervalMap.compute(interval, (key, set) -> {
-            if (set == null) {
-                set = ConcurrentHashMap.newKeySet();
+            writerFactory(newWriteGroup); // Implementado diretamente
+            readerFactory(newReadGroup, nodeId); // Implementado diretamente
+            return;
+        }
+        DataWriteGroup existingWriteGroup = existing.getWriteGroup();
+        if (!existingWriteGroup.equals(newWriteGroup)) {
+            if (!batchBuffers.containsKey(existingWriteGroup)) {
+                writerFactory(newWriteGroup); // Implementado diretamente
             }
-            set.add(nodeId);
-            return set;
-        });
-    }
-
-    /** Atomic update inside nodeIdsIntervalMap */
-    private void updateNodeInterval(String nodeId, Long oldInterval, Long newInterval) {
-
-        // REMOVE from old interval if exists
-        if (oldInterval != null) {
-            nodeIdsIntervalMap.computeIfPresent(oldInterval, (key, set) -> {
-                set.remove(nodeId);
-                return set.isEmpty() ? null : set;
-            });
         }
 
-        // ADD to new interval
-        nodeIdsIntervalMap.compute(newInterval, (key, set) -> {
-            if (set == null) {
-                set = ConcurrentHashMap.newKeySet();
+        DataReadGroup existingReadGroup = existing.getReadGroup();
+        if (!existingReadGroup.equals(newReadGroup)) {
+            reader.addNodeId(newReadGroup, nodeId);
+            reader.removeNodeId(existingReadGroup, nodeId);
+            // se o READER FICAR VAZIO, remove
+        }
+    }
+
+    public void start() {
+        writer.write();
+        transform.transform();
+        reader.read();
+        running.set(true);
+
+    }
+
+    public void stop() {
+        reader.stop();
+        writer.stop();
+        running.set(false);
+    }
+
+    /**
+     * Factory para criar ReadTask - implementa o que estava faltando
+     */
+    private void readerFactory(DataReadGroup readGroup, String nodeId) {
+        if (!readersMap.containsKey(readGroup)) {
+            Long intervalSeconds = readGroup.getInterval();
+            ReadTask readTask = readTaskFactory.createReadTask(intervalSeconds);
+            readTask.addNodeId(nodeId);
+            readersMap.put(readGroup, readTask);
+            if (running.get()) {
+                readTask.start();
             }
-            set.add(nodeId);
-            return set;
-        });
+        } else {
+            readersMap.get(readGroup).addNodeId(nodeId);
+        }
+    }
+
+    /**
+     * Factory para criar BatchBuffer - implementa o que estava faltando
+     */
+    private void writerFactory(DataWriteGroup writeGroup) {
+        if (!batchBuffers.containsKey(writeGroup)) {
+            IArrowBatchBuffer batchBuffer = batchBufferFactory.createBatchBuffer(writeGroup);
+            batchBuffers.put(writeGroup, batchBuffer);
+        }
     }
 }

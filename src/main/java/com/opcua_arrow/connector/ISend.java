@@ -1,5 +1,7 @@
 package com.opcua_arrow.connector;
 
+import com.opcua_arrow.data_point.DataWriteGroup;
+
 public interface ISend {
-    void send(String group, byte[] data);
+    void send(DataWriteGroup group, byte[] data);
 }

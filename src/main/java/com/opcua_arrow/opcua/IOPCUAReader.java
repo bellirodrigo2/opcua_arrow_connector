@@ -13,12 +13,40 @@ import java.util.concurrent.CompletableFuture;
 public interface IOPCUAReader<T> extends AutoCloseable {
 
     /**
+     * Gets the list of configured node IDs to read from.
+     * 
+     * @return List of node IDs
+     */
+    List<String> getNodeIds();
+
+    /**
+     * Sets the list of node IDs to read from.
+     * 
+     * @param nodeIds List of node IDs
+     */
+    void setNodeIds(List<String> nodeIds);
+
+    /**
+     * Adds a node ID to the list of nodes to read from.
+     * 
+     * @param nodeId The node ID to add
+     */
+    void addNodeId(String nodeId);
+
+    /**
+     * Removes a node ID from the list of nodes to read from.
+     * 
+     * @param nodeId The node ID to remove
+     */
+    void removeNodeId(String nodeId);
+
+    /**
      * Reads values from the configured nodes using the internal connection.
      * 
      * @return A future that completes when read
      * @throws IllegalStateException if the connection is not active
      */
-    CompletableFuture<List<IOPCUADataValue<T>>> read(List<String> nodeIds);
+    CompletableFuture<List<IOPCUADataValue<T>>> read();
 
     /**
      * Starts the reader by connecting to the OPC-UA server and validating

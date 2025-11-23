@@ -10,4 +10,6 @@ public interface IWriter {
      */
     void write();
 
+    void stop();
+
 }
