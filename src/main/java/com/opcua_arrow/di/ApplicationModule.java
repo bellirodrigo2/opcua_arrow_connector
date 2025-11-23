@@ -16,5 +16,6 @@ public class ApplicationModule extends AbstractModule {
         install(new FactoryModule());
         install(new SenderModule()); // Temporary bindings
         install(new DataProviderModule()); // Data source integration
+        install(new ServiceModule()); // Application services
     }
 }
