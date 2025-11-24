@@ -8,6 +8,12 @@ import com.google.inject.Provider;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.opcua_arrow.batch_builder.IBufferBuilder;
+import com.opcua_arrow.batch_builder.arrow.AcumBatchArrowBuilder;
+import com.opcua_arrow.batch_builder.arrow.IValueColumn;
+import com.opcua_arrow.batch_builder.arrow.columns.BooleanValueColumn;
+import com.opcua_arrow.batch_builder.arrow.columns.DoubleValueColumn;
+import com.opcua_arrow.batch_builder.arrow.columns.IntegerValueColumn;
+import com.opcua_arrow.batch_builder.arrow.columns.StringValueColumn;
 import com.opcua_arrow.data_point.DataWriteGroup;
 import com.opcua_arrow.opcua.IOPCUADataValue;
 import com.opcua_arrow.opcua.IOPCUAReader;
@@ -58,10 +64,27 @@ public class FactoryModule extends AbstractModule {
 
     public static class BatchBufferFactory {
 
+        private static final int INITIAL_CAPACITY = 1024;
+        private static final boolean COMPRESS = true;
+
         public IBufferBuilder createBatchBuffer(DataWriteGroup group) {
-            // Implementar logica de criacao baseada no grupo
-            // Por exemplo, diferentes builders para diferentes tipos
-            throw new UnsupportedOperationException("Implementar factory baseada no DataWriteGroup");
+            Class<?> valueType = group.getValueType();
+            IValueColumn valueColumn = createValueColumn(valueType);
+            return new AcumBatchArrowBuilder(INITIAL_CAPACITY, COMPRESS, valueColumn);
+        }
+
+        private IValueColumn createValueColumn(Class<?> valueType) {
+            if (valueType == Double.class || valueType == double.class) {
+                return new DoubleValueColumn();
+            } else if (valueType == Integer.class || valueType == int.class) {
+                return new IntegerValueColumn();
+            } else if (valueType == Boolean.class || valueType == boolean.class) {
+                return new BooleanValueColumn();
+            } else if (valueType == String.class) {
+                return new StringValueColumn();
+            } else {
+                throw new IllegalArgumentException("Unsupported value type: " + valueType);
+            }
         }
     }
 }

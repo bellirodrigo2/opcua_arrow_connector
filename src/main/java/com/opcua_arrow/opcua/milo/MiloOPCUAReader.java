@@ -22,28 +22,38 @@ import org.eclipse.milo.opcua.stack.core.types.structured.ReadValueId;
 
 /**
  * OPC-UA reader implementation using Eclipse Milo.
- * Fully thread-safe and lock-free for NodeId updates.
+ * Lock-free & thread-safe snapshot design.
  */
 public class MiloOPCUAReader implements IOPCUAReader {
 
     private final IRetryPolicy retryPolicy;
     private final IOPCUAConnection connection;
 
-    // Lock-free, atomic, immutable list snapshots
-    private final AtomicReference<List<String>> nodeIdsRef = new AtomicReference<>(List.of());
+    // ------------------------------------------------------------
+    // Snapshot atomico e imutável
+    // ------------------------------------------------------------
+    private static final class NodeSnapshot {
+        final List<String> nodeIds;
+        final List<ReadValueId> readValueIds;
 
-    private final AtomicReference<List<ReadValueId>> readValueIdsRef = new AtomicReference<>(List.of());
+        NodeSnapshot(List<String> nodeIds, List<ReadValueId> readValueIds) {
+            this.nodeIds = nodeIds;
+            this.readValueIds = readValueIds;
+        }
+    }
 
+    private final AtomicReference<NodeSnapshot> snapshotRef = new AtomicReference<>(
+            new NodeSnapshot(List.of(), List.of()));
+
+    // ------------------------------------------------------------
     public MiloOPCUAReader(IOPCUAConnection connection, IRetryPolicy retryPolicy) {
         this.connection = connection;
         this.retryPolicy = retryPolicy;
-        List<String> nodeIds = List.of();
-        setNodeIds(nodeIds);
     }
 
     @Override
     public List<String> getNodeIds() {
-        return nodeIdsRef.get();
+        return snapshotRef.get().nodeIds;
     }
 
     // ------------------------------------------------------------
@@ -53,7 +63,6 @@ public class MiloOPCUAReader implements IOPCUAReader {
     public void setNodeIds(List<String> nodeIds) {
         if (nodeIds == null)
             throw new IllegalArgumentException("nodeIds cannot be null");
-
         applyUpdate(old -> List.copyOf(nodeIds));
     }
 
@@ -79,29 +88,29 @@ public class MiloOPCUAReader implements IOPCUAReader {
                 .collect(Collectors.toUnmodifiableList()));
     }
 
-    /**
-     * Lock-free update with CAS.
-     */
+    // ------------------------------------------------------------
+    // ATUALIZAÇÃO ATÔMICA COM SNAPSHOT ÚNICO
+    // ------------------------------------------------------------
     private void applyUpdate(Function<List<String>, List<String>> updater) {
         while (true) {
-            List<String> oldList = nodeIdsRef.get();
+            NodeSnapshot oldSnap = snapshotRef.get();
+            List<String> oldList = oldSnap.nodeIds;
+
             List<String> newList = updater.apply(oldList);
 
-            if (nodeIdsRef.compareAndSet(oldList, newList)) {
+            List<ReadValueId> newReadValues = newList.stream()
+                    .map(id -> new ReadValueId(
+                            NodeId.parse(id),
+                            AttributeId.Value.uid(),
+                            null,
+                            QualifiedName.NULL_VALUE))
+                    .collect(Collectors.toUnmodifiableList());
 
-                // Rebuild ReadValueId list atomically
-                List<ReadValueId> newReadValues = newList.stream()
-                        .map(id -> new ReadValueId(
-                                NodeId.parse(id),
-                                AttributeId.Value.uid(),
-                                null,
-                                QualifiedName.NULL_VALUE))
-                        .collect(Collectors.toUnmodifiableList());
+            NodeSnapshot newSnap = new NodeSnapshot(newList, newReadValues);
 
-                readValueIdsRef.set(newReadValues);
-                return; // success
+            if (snapshotRef.compareAndSet(oldSnap, newSnap)) {
+                return; // sucesso, snapshot trocado atomically
             }
-            // Else retry (benign race, extremely rare)
         }
     }
 
@@ -114,34 +123,34 @@ public class MiloOPCUAReader implements IOPCUAReader {
             return CompletableFuture.failedFuture(
                     new IllegalArgumentException("Connection is null"));
         }
-
         return retryPolicy.executeWithRetry(this::readInternal);
     }
 
     private CompletableFuture<List<IOPCUADataValue>> readInternal() {
         var lock = connection.getClientLock();
         lock.readLock().lock();
-
         try {
             OpcUaClient client = connection.getClient();
             if (client == null || !connection.isConnected()) {
                 throw new IllegalStateException("Client not connected");
             }
 
-            // Atomic read of node lists
-            List<String> ids = nodeIdsRef.get();
-            List<ReadValueId> rvids = readValueIdsRef.get();
+            // snapshot consistente
+            NodeSnapshot snap = snapshotRef.get();
+            List<String> ids = snap.nodeIds;
+            List<ReadValueId> rvids = snap.readValueIds;
 
             return client.read(0, TimestampsToReturn.Both, rvids)
                     .thenApply(response -> {
                         DataValue[] results = response.getResults();
-                        List<IOPCUADataValue> values = new ArrayList<>();
+                        List<IOPCUADataValue> values = new ArrayList<>(results.length);
 
                         for (int i = 0; i < results.length; i++) {
                             values.add(new MiloDataValueAdapter(results[i], ids.get(i)));
                         }
                         return values;
                     });
+
         } finally {
             lock.readLock().unlock();
         }

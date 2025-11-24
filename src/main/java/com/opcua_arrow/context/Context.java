@@ -2,17 +2,15 @@ package com.opcua_arrow.context;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.inject.Inject;
-import com.opcua_arrow.batch_builder.IBufferBuilder;
 import com.opcua_arrow.data_point.DataPointParams;
 import com.opcua_arrow.data_point.DataReadGroup;
 import com.opcua_arrow.data_point.DataWriteGroup;
-import com.opcua_arrow.di.FactoryModule.BatchBufferFactory;
-import com.opcua_arrow.di.FactoryModule.ReadTaskFactory;
+import com.opcua_arrow.maps.BufferRegistry;
+import com.opcua_arrow.maps.ReadTaskRegistry;
+import com.opcua_arrow.maps.RunningState;
 import com.opcua_arrow.read.IReader;
-import com.opcua_arrow.read.ReadTask;
 import com.opcua_arrow.transform.ITransform;
 import com.opcua_arrow.writer.IWriter;
 
@@ -23,30 +21,23 @@ public class Context {
     private final IWriter writer;
     private final ITransform transform;
 
-    // Factories injetadas diretamente
-    private final ReadTaskFactory readTaskFactory;
-    private final BatchBufferFactory batchBufferFactory;
-
-    // Mapas compartilhados injetados
-    private final Map<DataReadGroup, ReadTask> readersMap;
-    private final Map<DataWriteGroup, IBufferBuilder> batchBuffers;
-    private final AtomicBoolean running = new AtomicBoolean(false);
+    private final ReadTaskRegistry readTaskRegistry;
+    private final BufferRegistry bufferRegistry;
+    private final RunningState runningState;
 
     @Inject
     public Context(Map<String, DataPointParams> paramsMap,
             IReader reader, IWriter writer, ITransform transform,
-            ReadTaskFactory readTaskFactory, BatchBufferFactory batchBufferFactory,
-            Map<DataReadGroup, ReadTask> readersMap,
-            Map<DataWriteGroup, IBufferBuilder> batchBuffers) {
+            ReadTaskRegistry readTaskRegistry, BufferRegistry bufferRegistry,
+            RunningState runningState) {
 
         this.paramsMap = ensureConcurrent(paramsMap);
         this.reader = reader;
         this.writer = writer;
         this.transform = transform;
-        this.readTaskFactory = readTaskFactory;
-        this.batchBufferFactory = batchBufferFactory;
-        this.readersMap = readersMap;
-        this.batchBuffers = batchBuffers;
+        this.readTaskRegistry = readTaskRegistry;
+        this.bufferRegistry = bufferRegistry;
+        this.runningState = runningState;
     }
 
     private <K, V> Map<K, V> ensureConcurrent(Map<K, V> map) {
@@ -62,7 +53,7 @@ public class Context {
             reader.removeNodeId(readGroup, nodeId);
             DataWriteGroup writeGroup = existing.getWriteGroup();
             if (!hasDataWriteGroup(writeGroup)) {
-                batchBuffers.remove(writeGroup);
+                bufferRegistry.remove(writeGroup);
             }
         }
     }
@@ -85,15 +76,15 @@ public class Context {
 
         if (existing == null) {
             paramsMap.put(nodeId, params);
-
-            writerFactory(newWriteGroup); // Implementado diretamente
-            readerFactory(newReadGroup, nodeId); // Implementado diretamente
+            bufferRegistry.getOrCreate(newWriteGroup);
+            readTaskRegistry.getOrCreate(newReadGroup, nodeId);
             return;
         }
+
         DataWriteGroup existingWriteGroup = existing.getWriteGroup();
         if (!existingWriteGroup.equals(newWriteGroup)) {
-            if (!batchBuffers.containsKey(existingWriteGroup)) {
-                writerFactory(newWriteGroup); // Implementado diretamente
+            if (!bufferRegistry.containsKey(existingWriteGroup)) {
+                bufferRegistry.getOrCreate(newWriteGroup);
             }
         }
 
@@ -101,7 +92,6 @@ public class Context {
         if (!existingReadGroup.equals(newReadGroup)) {
             reader.addNodeId(newReadGroup, nodeId);
             reader.removeNodeId(existingReadGroup, nodeId);
-            // se o READER FICAR VAZIO, remove
         }
     }
 
@@ -109,40 +99,12 @@ public class Context {
         writer.write();
         transform.transform();
         reader.read();
-        running.set(true);
-
+        runningState.setRunning(true);
     }
 
     public void stop() {
         reader.stop();
         writer.stop();
-        running.set(false);
-    }
-
-    /**
-     * Factory para criar ReadTask - implementa o que estava faltando
-     */
-    private void readerFactory(DataReadGroup readGroup, String nodeId) {
-        if (!readersMap.containsKey(readGroup)) {
-            Long intervalSeconds = readGroup.getInterval();
-            ReadTask readTask = readTaskFactory.createReadTask(intervalSeconds);
-            readTask.addNodeId(nodeId);
-            readersMap.put(readGroup, readTask);
-            if (running.get()) {
-                readTask.start();
-            }
-        } else {
-            readersMap.get(readGroup).addNodeId(nodeId);
-        }
-    }
-
-    /**
-     * Factory para criar BatchBuffer - implementa o que estava faltando
-     */
-    private void writerFactory(DataWriteGroup writeGroup) {
-        if (!batchBuffers.containsKey(writeGroup)) {
-            IBufferBuilder batchBuffer = batchBufferFactory.createBatchBuffer(writeGroup);
-            batchBuffers.put(writeGroup, batchBuffer);
-        }
+        runningState.setRunning(false);
     }
 }

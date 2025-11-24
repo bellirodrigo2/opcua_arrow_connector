@@ -8,6 +8,7 @@ import com.opcua_arrow.batch_builder.IBufferBuilder;
 import com.opcua_arrow.connector.ISend;
 import com.opcua_arrow.data_point.DataValue;
 import com.opcua_arrow.data_point.DataWriteGroup;
+import com.opcua_arrow.maps.BufferRegistry;
 import com.opcua_arrow.opcua.IOPCUADataValue;
 import com.opcua_arrow.queues.IQueue;
 
@@ -18,16 +19,15 @@ public class LoopWriter implements IWriter {
     private static final Logger logger = LoggerFactory.getLogger(LoopWriter.class);
     private final IQueue<Map<DataWriteGroup, List<DataValue>>> source;
     private final ISend sender;
-    private final Map<DataWriteGroup, IBufferBuilder> batchBuffers;
+    private final BufferRegistry bufferRegistry;
 
     private final List<Map<DataWriteGroup, List<DataValue>>> reusableDataList = new ArrayList<>();
 
     public LoopWriter(
-            Map<DataWriteGroup, IBufferBuilder> batchBuffers,
+            BufferRegistry bufferRegistry,
             IQueue<Map<DataWriteGroup, List<DataValue>>> source,
-            long poll_timeout_seconds,
             ISend sender) {
-        this.batchBuffers = batchBuffers;
+        this.bufferRegistry = bufferRegistry;
         this.source = source;
         this.sender = sender;
     }
@@ -44,9 +44,7 @@ public class LoopWriter implements IWriter {
                     internalWrite(data);
                 }
             }
-        } catch (
-
-        InterruptedException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
     }
@@ -65,7 +63,7 @@ public class LoopWriter implements IWriter {
 
     @Override
     public void stop() {
-        for (IBufferBuilder batchBuffer : batchBuffers.values()) {
+        for (IBufferBuilder batchBuffer : bufferRegistry.values()) {
             if (batchBuffer != null) {
                 batchBuffer.close();
             }
@@ -74,7 +72,7 @@ public class LoopWriter implements IWriter {
 
     private byte[] buildBatch(DataWriteGroup group, List<DataValue> nodeDataList) {
 
-        IBufferBuilder batchBuffer = batchBuffers.get(group);
+        IBufferBuilder batchBuffer = bufferRegistry.get(group);
         if (batchBuffer == null) {
             logger.warn("No batch buffer found for group: " + group);
             return null;
@@ -97,11 +95,9 @@ public class LoopWriter implements IWriter {
                 batchBuffer.append(id, timestamp, value, statusCode);
             } catch (Exception e) {
                 logger.error("Failed to append data for group: {}, id: {}", group, id, e);
-                // decidir se continua ou para
             }
         }
 
         return batchBuffer.flush();
     }
-
 }

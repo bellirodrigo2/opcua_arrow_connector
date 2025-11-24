@@ -40,7 +40,7 @@ public class ReadTask {
     }
 
     public void removeNodeId(String nodeId) {
-        // opcuaReader.removeNodeId(nodeId);
+        opcuaReader.removeNodeId(nodeId);
     }
 
     public void start() {
