@@ -1,4 +1,4 @@
-package com.opcua_arrow.data_point_provider;
+package com.opcua_arrow.service;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;

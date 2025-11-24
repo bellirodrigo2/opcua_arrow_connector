@@ -5,10 +5,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.inject.Inject;
-import com.opcua_arrow.batch_builder.IArrowBatchBuffer;
+import com.opcua_arrow.batch_builder.IBufferBuilder;
+import com.opcua_arrow.data_point.DataPointParams;
 import com.opcua_arrow.data_point.DataReadGroup;
 import com.opcua_arrow.data_point.DataWriteGroup;
-import com.opcua_arrow.data_point.opcua.DataPointParams;
 import com.opcua_arrow.di.FactoryModule.BatchBufferFactory;
 import com.opcua_arrow.di.FactoryModule.ReadTaskFactory;
 import com.opcua_arrow.read.IReader;
@@ -29,7 +29,7 @@ public class Context {
 
     // Mapas compartilhados injetados
     private final Map<DataReadGroup, ReadTask> readersMap;
-    private final Map<DataWriteGroup, IArrowBatchBuffer> batchBuffers;
+    private final Map<DataWriteGroup, IBufferBuilder> batchBuffers;
     private final AtomicBoolean running = new AtomicBoolean(false);
 
     @Inject
@@ -37,7 +37,7 @@ public class Context {
             IReader reader, IWriter writer, ITransform transform,
             ReadTaskFactory readTaskFactory, BatchBufferFactory batchBufferFactory,
             Map<DataReadGroup, ReadTask> readersMap,
-            Map<DataWriteGroup, IArrowBatchBuffer> batchBuffers) {
+            Map<DataWriteGroup, IBufferBuilder> batchBuffers) {
 
         this.paramsMap = ensureConcurrent(paramsMap);
         this.reader = reader;
@@ -141,7 +141,7 @@ public class Context {
      */
     private void writerFactory(DataWriteGroup writeGroup) {
         if (!batchBuffers.containsKey(writeGroup)) {
-            IArrowBatchBuffer batchBuffer = batchBufferFactory.createBatchBuffer(writeGroup);
+            IBufferBuilder batchBuffer = batchBufferFactory.createBatchBuffer(writeGroup);
             batchBuffers.put(writeGroup, batchBuffer);
         }
     }

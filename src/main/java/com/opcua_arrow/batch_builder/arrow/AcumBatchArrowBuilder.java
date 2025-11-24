@@ -3,7 +3,7 @@ package com.opcua_arrow.batch_builder.arrow;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.types.pojo.Schema;
 
-public class AcumBatchArrowBuilder extends BaseArrowBatchBuilder {
+public class AcumBatchArrowBuilder extends BaseArrowBufferBuilder {
 
     public AcumBatchArrowBuilder(
             Schema schema,

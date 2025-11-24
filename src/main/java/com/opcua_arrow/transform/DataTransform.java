@@ -1,18 +1,16 @@
-package com.opcua_arrow.transform.opcua;
+package com.opcua_arrow.transform;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
 
+import com.opcua_arrow.data_point.DataPointParams;
+import com.opcua_arrow.data_point.DataValue;
 import com.opcua_arrow.data_point.DataWriteGroup;
 import com.opcua_arrow.data_point.IDataPointEqual;
-import com.opcua_arrow.data_point.opcua.DataPointParams;
-import com.opcua_arrow.data_point.opcua.DataValue;
 import com.opcua_arrow.opcua.IOPCUADataValue;
-import com.opcua_arrow.transform.ITransform;
+import com.opcua_arrow.queues.IQueue;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,19 +18,19 @@ import org.slf4j.LoggerFactory;
 public class DataTransform implements ITransform {
 
     private static final Logger logger = LoggerFactory.getLogger(DataTransform.class);
-    private final BlockingQueue<List<IOPCUADataValue<?>>> source;
-    private final BlockingQueue<Map<DataWriteGroup, List<DataValue<?>>>> sink;
+    private final IQueue<List<IOPCUADataValue>> source;
+    private final IQueue<Map<DataWriteGroup, List<DataValue>>> sink;
     private final Map<String, DataPointParams> paramsMap;
-    private final long pollTimeoutSeconds;
-    private final Map<DataWriteGroup, List<DataValue<?>>> groupedDataValues = new HashMap<>();
-    private final List<List<IOPCUADataValue<?>>> batchList = new ArrayList<>();
 
-    public DataTransform(BlockingQueue<List<IOPCUADataValue<?>>> source, long pollTimeoutSeconds,
-            BlockingQueue<Map<DataWriteGroup, List<DataValue<?>>>> sink, Map<String, DataPointParams> paramsMap) {
+    // Reusable collections to minimize object creation
+    private final Map<DataWriteGroup, List<DataValue>> groupedDataValues = new HashMap<>();
+    private final List<List<IOPCUADataValue>> batchList = new ArrayList<>();
+
+    public DataTransform(IQueue<List<IOPCUADataValue>> source, long pollTimeoutSeconds,
+            IQueue<Map<DataWriteGroup, List<DataValue>>> sink, Map<String, DataPointParams> paramsMap) {
         this.source = source;
         this.sink = sink;
         this.paramsMap = paramsMap;
-        this.pollTimeoutSeconds = pollTimeoutSeconds;
     }
 
     @Override
@@ -40,31 +38,22 @@ public class DataTransform implements ITransform {
 
         try {
             while (true) {
-                for (List<DataValue<?>> list : groupedDataValues.values()) {
+                for (List<DataValue> list : groupedDataValues.values()) {
                     list.clear();
                 }
                 batchList.clear();
 
-                // Poll primeiro batch (blocking)
-                List<IOPCUADataValue<?>> firstBatch = source.poll(pollTimeoutSeconds, TimeUnit.SECONDS);
-                if (firstBatch == null) {
-                    continue;
-                }
-
-                batchList.add(firstBatch);
-
-                // Drain batches adicionais (non-blocking)
-                source.drainTo(batchList);
+                source.pop(batchList);
 
                 // Processa todos os batches
-                for (List<IOPCUADataValue<?>> opcuaValues : batchList) {
+                for (List<IOPCUADataValue> opcuaValues : batchList) {
                     if (opcuaValues != null) {
                         processOpcuaValues(opcuaValues);
                     }
                 }
 
                 if (!groupedDataValues.isEmpty()) {
-                    sink.put(groupedDataValues);
+                    sink.push(groupedDataValues);
                 }
             }
         } catch (InterruptedException e) {
@@ -72,9 +61,9 @@ public class DataTransform implements ITransform {
         }
     }
 
-    private void processOpcuaValues(List<IOPCUADataValue<?>> opcuaValues) {
+    private void processOpcuaValues(List<IOPCUADataValue> opcuaValues) {
 
-        for (IOPCUADataValue<?> opcuaval : opcuaValues) {
+        for (IOPCUADataValue opcuaval : opcuaValues) {
             String nodeId = opcuaval.getNodeId();
             DataPointParams params = paramsMap.get(nodeId);
             if (params == null) {
@@ -85,7 +74,7 @@ public class DataTransform implements ITransform {
             IDataPointEqual equalChecker = params.getEquals();
             if (equalChecker != null && !equalChecker.isEqual(opcuaval)) {
                 groupedDataValues.computeIfAbsent(group, k -> new ArrayList<>())
-                        .add(new DataValue<>(opcuaval, params));
+                        .add(new DataValue(opcuaval, params));
             }
         }
 

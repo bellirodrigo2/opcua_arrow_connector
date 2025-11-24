@@ -1,17 +1,12 @@
-package com.opcua_arrow.data_point.opcua;
+package com.opcua_arrow.data_point;
 
 import java.util.Map;
 
-import com.opcua_arrow.data_point.DataReadGroup;
-import com.opcua_arrow.data_point.DataWriteGroup;
-import com.opcua_arrow.data_point.IDataPointEqual;
-import com.opcua_arrow.data_point.IDataPointParams;
-import com.opcua_arrow.data_point.IntRange;
-import com.opcua_arrow.data_point.opcua.equals.EqualValue;
-import com.opcua_arrow.data_point.opcua.equals.InRangeValue;
-import com.opcua_arrow.data_point_provider.DataPointDTO;
+import com.opcua_arrow.data_point.equals.EqualValue;
+import com.opcua_arrow.data_point.equals.InRangeValue;
+import com.opcua_arrow.service.DataPointDTO;
 
-public class DataPointParams implements IDataPointParams {
+public class DataPointParams {
 
     private final String nodeId;
     private final int pointId;
@@ -39,32 +34,26 @@ public class DataPointParams implements IDataPointParams {
         return DataPointParamsFactory.createDataPointParams(config);
     }
 
-    @Override
     public Class<?> getValueTypeClass() {
         return valueTypeClass;
     }
 
-    @Override
     public int getPointId() {
         return pointId;
     }
 
-    @Override
     public IDataPointEqual getEquals() {
         return equals;
     }
 
-    @Override
     public DataWriteGroup getWriteGroup() {
         return writeGroup;
     }
 
-    @Override
     public DataReadGroup getReadGroup() {
         return readGroup;
     }
 
-    @Override
     public String getNodeId() {
         return nodeId;
     }

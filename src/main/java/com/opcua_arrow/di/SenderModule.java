@@ -30,7 +30,7 @@ public class SenderModule extends AbstractModule {
     }
 
     @Provides
-    public IOPCUAReader<?> provideMockOPCUAReader() {
+    public IOPCUAReader provideMockOPCUAReader() {
         // TODO: Substituir por implementação real baseada em configuração
         throw new UnsupportedOperationException(
                 "IOPCUAReader provider não implementado. " +

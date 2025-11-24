@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPOutputStream;
 
-import com.opcua_arrow.batch_builder.IArrowBatchBuffer;
+import com.opcua_arrow.batch_builder.IBufferBuilder;
 
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
@@ -18,7 +18,7 @@ import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.ipc.ArrowStreamWriter;
 import org.apache.arrow.vector.types.pojo.Schema;
 
-public class BaseArrowBatchBuilder implements IArrowBatchBuffer {
+public class BaseArrowBufferBuilder implements IBufferBuilder {
 
     protected final BufferAllocator allocator;
     protected final Schema schema;
@@ -34,7 +34,7 @@ public class BaseArrowBatchBuilder implements IArrowBatchBuffer {
     protected int capacity;
     protected int count;
 
-    public BaseArrowBatchBuilder(
+    public BaseArrowBufferBuilder(
             Schema schema,
             int initialCapacity,
             BufferAllocator allocator,
@@ -48,7 +48,7 @@ public class BaseArrowBatchBuilder implements IArrowBatchBuffer {
         allocateVectors(initialCapacity);
     }
 
-    public BaseArrowBatchBuilder(
+    public BaseArrowBufferBuilder(
             int initialCapacity,
             boolean compress,
             IValueColumn valueColumn) {

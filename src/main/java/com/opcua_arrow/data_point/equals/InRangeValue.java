@@ -1,11 +1,11 @@
-package com.opcua_arrow.data_point.opcua.equals;
+package com.opcua_arrow.data_point.equals;
 
 import com.opcua_arrow.data_point.IDataPointEqual;
 import com.opcua_arrow.opcua.IOPCUADataValue;
 
 public class InRangeValue implements IDataPointEqual {
 
-    private IOPCUADataValue<?> lastValue = null;
+    private IOPCUADataValue lastValue = null;
     private final double range; // percentual entre 0 e 1 (ex.: 0.05 = 5%)
 
     public InRangeValue(double range) {
@@ -13,7 +13,7 @@ public class InRangeValue implements IDataPointEqual {
     }
 
     @Override
-    public boolean isEqual(IOPCUADataValue<?> newValue) {
+    public boolean isEqual(IOPCUADataValue newValue) {
 
         if (lastValue == null) {
             lastValue = newValue;

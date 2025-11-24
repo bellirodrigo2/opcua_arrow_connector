@@ -1,6 +1,6 @@
 package com.opcua_arrow.batch_builder;
 
-public interface IArrowBatchBuffer extends AutoCloseable {
+public interface IBufferBuilder extends AutoCloseable {
 
     /** Add one registry */
     void append(int id, long timestampNanos, Object value, int statusCode);

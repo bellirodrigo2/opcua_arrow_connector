@@ -1,4 +1,4 @@
-package com.opcua_arrow.data_point.opcua.equals;
+package com.opcua_arrow.data_point.equals;
 
 import java.util.Objects;
 
@@ -7,10 +7,10 @@ import com.opcua_arrow.opcua.IOPCUADataValue;
 
 public class EqualValue implements IDataPointEqual {
 
-    private IOPCUADataValue<?> lastValue = null;
+    private IOPCUADataValue lastValue = null;
 
     @Override
-    public boolean isEqual(IOPCUADataValue<?> newValue) {
+    public boolean isEqual(IOPCUADataValue newValue) {
 
         if (lastValue == null) {
             lastValue = newValue;

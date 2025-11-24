@@ -7,8 +7,9 @@ import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.opcua_arrow.config.ConfigProvider;
 import com.opcua_arrow.config.PostgreSQLConfig;
-import com.opcua_arrow.data_point_provider.IProvideDataPoint;
-import com.opcua_arrow.data_point_provider.PostgreSQLDataPointProvider;
+import com.opcua_arrow.service.IProvideDataPoint;
+import com.opcua_arrow.service.PostgreSQLDataPointProvider;
+
 import org.postgresql.ds.PGSimpleDataSource;
 
 public class DataProviderModule extends AbstractModule {
@@ -37,17 +38,17 @@ public class DataProviderModule extends AbstractModule {
         dataSource.setUrl(config.getJdbcUrl());
         dataSource.setUser(config.getUsername());
         dataSource.setPassword(config.getPassword());
-        
+
         // Connection settings
         dataSource.setConnectTimeout((int) config.getConnectionTimeout().toSeconds());
         dataSource.setSocketTimeout((int) config.getQueryTimeout().toSeconds());
         dataSource.setApplicationName("opcua-arrow-connector");
-        
+
         return dataSource;
     }
 
     @Provides
-    @Singleton  
+    @Singleton
     public String provideSourceName(PostgreSQLConfig config) {
         return config.getSourceName();
     }

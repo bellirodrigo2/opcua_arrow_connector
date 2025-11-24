@@ -24,7 +24,7 @@ import org.eclipse.milo.opcua.stack.core.types.structured.ReadValueId;
  * OPC-UA reader implementation using Eclipse Milo.
  * Fully thread-safe and lock-free for NodeId updates.
  */
-public class MiloOPCUAReader<T> implements IOPCUAReader<T> {
+public class MiloOPCUAReader implements IOPCUAReader {
 
     private final IRetryPolicy retryPolicy;
     private final IOPCUAConnection connection;
@@ -109,7 +109,7 @@ public class MiloOPCUAReader<T> implements IOPCUAReader<T> {
     // OPC-UA CONNECTION & READ
     // ------------------------------------------------------------
     @Override
-    public CompletableFuture<List<IOPCUADataValue<T>>> read() {
+    public CompletableFuture<List<IOPCUADataValue>> read() {
         if (connection == null) {
             return CompletableFuture.failedFuture(
                     new IllegalArgumentException("Connection is null"));
@@ -118,7 +118,7 @@ public class MiloOPCUAReader<T> implements IOPCUAReader<T> {
         return retryPolicy.executeWithRetry(this::readInternal);
     }
 
-    private CompletableFuture<List<IOPCUADataValue<T>>> readInternal() {
+    private CompletableFuture<List<IOPCUADataValue>> readInternal() {
         var lock = connection.getClientLock();
         lock.readLock().lock();
 
@@ -135,10 +135,10 @@ public class MiloOPCUAReader<T> implements IOPCUAReader<T> {
             return client.read(0, TimestampsToReturn.Both, rvids)
                     .thenApply(response -> {
                         DataValue[] results = response.getResults();
-                        List<IOPCUADataValue<T>> values = new ArrayList<>();
+                        List<IOPCUADataValue> values = new ArrayList<>();
 
                         for (int i = 0; i < results.length; i++) {
-                            values.add(new MiloDataValueAdapter<>(results[i], ids.get(i)));
+                            values.add(new MiloDataValueAdapter(results[i], ids.get(i)));
                         }
                         return values;
                     });

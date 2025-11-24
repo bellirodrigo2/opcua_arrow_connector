@@ -10,7 +10,7 @@ import org.eclipse.milo.opcua.stack.core.types.builtin.StatusCode;
 import org.eclipse.milo.opcua.stack.core.types.builtin.Variant;
 import org.eclipse.milo.opcua.stack.core.types.builtin.unsigned.UShort;
 
-public class MiloDataValueAdapter<T> implements IOPCUADataValue<T> {
+public class MiloDataValueAdapter implements IOPCUADataValue {
 
     private final DataValue dataValue;
     private final String nodeId;
@@ -77,8 +77,7 @@ public class MiloDataValueAdapter<T> implements IOPCUADataValue<T> {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    public T getValue() {
+    public Object getValue() {
         Variant variant = dataValue.getValue();
         if (variant == null)
             return null;
@@ -87,7 +86,7 @@ public class MiloDataValueAdapter<T> implements IOPCUADataValue<T> {
         if (raw == null)
             return null;
 
-        return (T) raw; // "Pass-through", sem conversões
+        return raw; // "Pass-through", sem conversões
     }
 
     @Override
