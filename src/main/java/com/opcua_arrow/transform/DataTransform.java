@@ -8,7 +8,6 @@ import java.util.Map;
 import com.opcua_arrow.data_point.DataPointParams;
 import com.opcua_arrow.data_point.DataValue;
 import com.opcua_arrow.data_point.DataWriteGroup;
-import com.opcua_arrow.data_point.IDataPointEqual;
 import com.opcua_arrow.opcua.IOPCUADataValue;
 import com.opcua_arrow.queues.IQueue;
 
@@ -64,16 +63,22 @@ public class DataTransform implements ITransform {
     private void processOpcuaValues(List<IOPCUADataValue> opcuaValues) {
 
         for (IOPCUADataValue opcuaval : opcuaValues) {
-            String nodeId = opcuaval.getNodeId();
-            DataPointParams params = paramsMap.get(nodeId);
+            DataPointParams params = paramsMap.get(opcuaval.getNodeId());
             if (params == null) {
-                logger.warn("No parameters found for nodeId: " + nodeId);
+                logger.warn("No parameters found for nodeId: " + opcuaval.getNodeId());
                 continue;
             }
-            DataWriteGroup group = params.getWriteGroup();
-            IDataPointEqual equalChecker = params.getEquals();
-            if (equalChecker != null && !equalChecker.isEqual(opcuaval)) {
-                groupedDataValues.computeIfAbsent(group, k -> new ArrayList<>())
+            // IDataPointEqual equalChecker = params.getEquals();
+            // if (equalChecker != null && !equalChecker.isEqual(opcuaval)) {
+            // groupedDataValues.computeIfAbsent(params.getWriteGroup(), k -> new
+            // ArrayList<>())
+            // .add(new DataValue(opcuaval, params));
+            // }
+
+            // IDataPointEqual equalChecker = params.getEquals();
+            // TEM QUE GARANTIR QUE equal sempre RETORNA
+            if (!params.getEquals().isEqual(opcuaval)) {
+                groupedDataValues.computeIfAbsent(params.getWriteGroup(), k -> new ArrayList<>())
                         .add(new DataValue(opcuaval, params));
             }
         }

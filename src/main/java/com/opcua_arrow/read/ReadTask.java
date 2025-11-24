@@ -14,7 +14,7 @@ import com.opcua_arrow.queues.IQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ReadTask {
+public class ReadTask implements IReadTask {
 
     private static final Logger logger = LoggerFactory.getLogger(ReadTask.class);
     private ScheduledFuture<?> scheduledTask;
