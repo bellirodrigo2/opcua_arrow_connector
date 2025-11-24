@@ -9,20 +9,23 @@ import org.slf4j.LoggerFactory;
 public class ConfigProvider {
     
     private static final Logger logger = LoggerFactory.getLogger(ConfigProvider.class);
-    
+
     private final PostgreSQLConfig postgreSQLConfig;
     private final RetryPolicyConfig retryPolicyConfig;
-    
+    private final InfraConfig infraConfig;
+
     public ConfigProvider() {
         this.postgreSQLConfig = loadPostgreSQLConfig();
         this.retryPolicyConfig = loadRetryPolicyConfig();
-        
+        this.infraConfig = loadInfraConfig();
+
         // Validate all configurations
         validateConfigurations();
-        
+
         logger.info("Configuration loaded successfully");
         logger.debug("PostgreSQL Config: {}", postgreSQLConfig);
         logger.debug("Retry Policy Config: {}", retryPolicyConfig);
+        logger.debug("Infra Config: {}", infraConfig);
     }
     
     private PostgreSQLConfig loadPostgreSQLConfig() {
@@ -46,11 +49,23 @@ public class ConfigProvider {
             throw new RuntimeException("Retry Policy configuration error", e);
         }
     }
+
+    private InfraConfig loadInfraConfig() {
+        try {
+            InfraConfig config = InfraConfig.fromEnvironment();
+            config.validate();
+            return config;
+        } catch (Exception e) {
+            logger.error("Failed to load Infra configuration", e);
+            throw new RuntimeException("Infra configuration error", e);
+        }
+    }
     
     private void validateConfigurations() {
         try {
             postgreSQLConfig.validate();
             retryPolicyConfig.validate();
+            infraConfig.validate();
         } catch (Exception e) {
             logger.error("Configuration validation failed", e);
             throw new RuntimeException("Invalid configuration", e);
@@ -64,17 +79,41 @@ public class ConfigProvider {
     public RetryPolicyConfig getRetryPolicyConfig() {
         return retryPolicyConfig;
     }
+
+    public InfraConfig getInfraConfig() {
+        return infraConfig;
+    }
     
     /**
      * Create a configuration for testing with default values
      */
     public static ConfigProvider forTesting() {
-        // Set test environment variables
-        System.setProperty("DB_JDBC_URL", "jdbc:postgresql://localhost:5432/opcua_arrow_test");
-        System.setProperty("DB_USERNAME", "test_user");
-        System.setProperty("DB_PASSWORD", "test_password");
-        System.setProperty("SOURCE_NAME", "test_source");
-        
-        return new ConfigProvider();
+        // Create test PostgreSQL config
+        PostgreSQLConfig pgConfig = new PostgreSQLConfig();
+        pgConfig.setJdbcUrl("jdbc:postgresql://localhost:5432/opcua_arrow_test");
+        pgConfig.setUsername("test_user");
+        pgConfig.setPassword("test_password");
+        pgConfig.setSourceName("test_source");
+        pgConfig.setMaxPoolSize(5);
+        pgConfig.setMinPoolSize(1);
+
+        // Create test retry config
+        RetryPolicyConfig retryConfig = new RetryPolicyConfig();
+
+        // Create test infra config
+        InfraConfig infraConfig = new InfraConfig();
+
+        return new ConfigProvider(pgConfig, retryConfig, infraConfig);
+    }
+
+    /**
+     * Constructor for testing purposes
+     */
+    private ConfigProvider(PostgreSQLConfig postgreSQLConfig, RetryPolicyConfig retryPolicyConfig, InfraConfig infraConfig) {
+        this.postgreSQLConfig = postgreSQLConfig;
+        this.retryPolicyConfig = retryPolicyConfig;
+        this.infraConfig = infraConfig;
+        validateConfigurations();
+        logger.info("Test configuration loaded");
     }
 }

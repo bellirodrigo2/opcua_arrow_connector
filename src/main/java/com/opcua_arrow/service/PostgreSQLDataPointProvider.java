@@ -55,45 +55,16 @@ public class PostgreSQLDataPointProvider implements IProvideDataPoint {
 
     @Override
     public List<DataPointDTO> getDataPoints() {
-        String sql = "SELECT " +
-                "dpc.source_string as node_id, " +
-                "dpc.source_id as point_id, " +
-                "dp.data_type as value_type, " +
-                "sg.name as group_name, " +
-                "sg.partition_range as range_config, " +
-                "dpc.filter_config, " +
-                "pg.read_mode as read_type, " +
-                "pg.interval as interval_seconds " +
-                "FROM metadata.data_point_config dpc " +
-                "JOIN metadata.data_point dp ON dpc.point_uuid = dp.point_uuid " +
-                "JOIN metadata.priority_group pg ON dpc.priority_group = pg.priority_group_uuid " +
-                "JOIN metadata.stream_group sg ON dpc.stream_group = sg.stream_group_uuid " +
-                "JOIN metadata.data_block db ON dp.parent_block_id = db.block_uuid " +
-                "JOIN metadata.point_source ps ON db.point_source_id = ps.group_id " +
-                "WHERE ps.name = ? AND dpc.deleted_at IS NULL";
+        String sql = "SELECT * FROM metadata.v_data_point_config " +
+                "WHERE source_name = ? AND deleted_at IS NULL";
 
         return executeDataPointQuery(sql, sourceName);
     }
 
     @Override
     public List<DataPointDTO> getUpdatedDataPoints(Instant lastUpdate) {
-        String sql = "SELECT " +
-                "dpc.source_string as node_id, " +
-                "dpc.source_id as point_id, " +
-                "dp.data_type as value_type, " +
-                "sg.name as group_name, " +
-                "sg.partition_range as range_config, " +
-                "dpc.filter_config, " +
-                "pg.read_mode as read_type, " +
-                "pg.interval as interval_seconds " +
-                "FROM metadata.data_point_config dpc " +
-                "JOIN metadata.data_point dp ON dpc.point_uuid = dp.point_uuid " +
-                "JOIN metadata.priority_group pg ON dpc.priority_group = pg.priority_group_uuid " +
-                "JOIN metadata.stream_group sg ON dpc.stream_group = sg.stream_group_uuid " +
-                "JOIN metadata.data_block db ON dp.parent_block_id = db.block_uuid " +
-                "JOIN metadata.point_source ps ON db.point_source_id = ps.group_id " +
-                "WHERE ps.name = ? AND dpc.deleted_at IS NULL " +
-                "AND dpc.updated_at > ?";
+        String sql = "SELECT * FROM metadata.v_data_point_config " +
+                "WHERE source_name = ? AND deleted_at IS NULL AND updated_at > ?";
 
         try (Connection conn = dataSource.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -110,12 +81,8 @@ public class PostgreSQLDataPointProvider implements IProvideDataPoint {
 
     @Override
     public List<String> getDeletedDataPoints(Instant lastUpdate) {
-        String sql = "SELECT dpc.source_string as node_id " +
-                "FROM metadata.data_point_config dpc " +
-                "JOIN metadata.data_block db ON dpc.point_uuid = db.block_uuid " +
-                "JOIN metadata.point_source ps ON db.point_source_id = ps.group_id " +
-                "WHERE ps.name = ? AND dpc.deleted_at IS NOT NULL " +
-                "AND dpc.deleted_at > ?";
+        String sql = "SELECT node_id FROM metadata.v_data_point_config " +
+                "WHERE source_name = ? AND deleted_at IS NOT NULL AND deleted_at > ?";
 
         try (Connection conn = dataSource.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -163,7 +130,8 @@ public class PostgreSQLDataPointProvider implements IProvideDataPoint {
             String valueType = rs.getString("value_type");
             String groupName = rs.getString("group_name");
             String rangeConfig = rs.getString("range_config");
-            String filterConfigJson = rs.getString("filter_config");
+            Double filterRange = rs.getObject("filter_range", Double.class);
+            Long filterIntervalSeconds = rs.getObject("filter_interval_seconds", Long.class);
             String readType = rs.getString("read_type");
             long intervalSeconds = rs.getLong("interval_seconds");
 
@@ -172,14 +140,13 @@ public class PostgreSQLDataPointProvider implements IProvideDataPoint {
             int minRange = range[0];
             int maxRange = range[1];
 
-            // Parse filter_config JSON
-            Map<String, Object> filterConfig = parseFilterConfig(filterConfigJson);
-            String filterType = (String) filterConfig.get("type");
-            Map<String, Object> filterParameters = (Map<String, Object>) filterConfig.get("parameters");
+            // Handle null filter values
+            double filterRangeValue = (filterRange != null) ? filterRange : 0.0;
+            long filterIntervalValue = (filterIntervalSeconds != null) ? filterIntervalSeconds : 0L;
 
             DataPointDTO dto = new DataPointDTO(
                     nodeId, valueType, pointId, groupName,
-                    minRange, maxRange, filterType, filterParameters,
+                    minRange, maxRange, filterRangeValue, filterIntervalValue,
                     intervalSeconds, readType);
 
             dataPoints.add(dto);
@@ -209,20 +176,6 @@ public class PostgreSQLDataPointProvider implements IProvideDataPoint {
 
         } catch (Exception e) {
             throw new RuntimeException("Failed to parse OPC UA client config", e);
-        }
-    }
-
-    private Map<String, Object> parseFilterConfig(String filterConfigJson) {
-        if (filterConfigJson == null || filterConfigJson.trim().isEmpty()) {
-            return Map.of("type", "none", "parameters", Map.of());
-        }
-
-        try {
-            return objectMapper.readValue(filterConfigJson,
-                    new TypeReference<Map<String, Object>>() {
-                    });
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to parse filter config", e);
         }
     }
 

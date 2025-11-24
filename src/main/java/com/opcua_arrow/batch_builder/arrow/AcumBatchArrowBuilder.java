@@ -5,32 +5,32 @@ import org.apache.arrow.vector.types.pojo.Schema;
 
 public class AcumBatchArrowBuilder extends BaseArrowBufferBuilder {
 
+    private int minBatchSize;
+    private long minFlushIntervalNanos;
+    private long lastFlushTimeNanos = System.nanoTime();
+
     public AcumBatchArrowBuilder(
             Schema schema,
             int initialCapacity,
             BufferAllocator allocator,
             boolean compress,
-            IValueColumn valueColumn) {
+            IValueColumn valueColumn,
+            int minBatchSize,
+            long minFlushIntervalNanos) {
         super(schema, initialCapacity, allocator, compress, valueColumn);
+        this.minBatchSize = minBatchSize;
+        this.minFlushIntervalNanos = minFlushIntervalNanos;
     }
 
     public AcumBatchArrowBuilder(
             int initialCapacity,
             boolean compress,
-            IValueColumn valueColumn) {
+            IValueColumn valueColumn,
+            int minBatchSize,
+            long minFlushIntervalNanos) {
         super(initialCapacity, compress, valueColumn);
-    }
-
-    private int minBatchSize = 1;
-    private long minFlushIntervalNanos = 0;
-    private long lastFlushTimeNanos = System.nanoTime();
-
-    public void setMinBatchSize(int v) {
-        this.minBatchSize = v;
-    }
-
-    public void setMinFlushIntervalSeconds(int sec) {
-        this.minFlushIntervalNanos = sec * 1_000_000_000L;
+        this.minBatchSize = minBatchSize;
+        this.minFlushIntervalNanos = minFlushIntervalNanos;
     }
 
     @Override

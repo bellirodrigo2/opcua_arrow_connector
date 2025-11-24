@@ -28,7 +28,6 @@ public class TransformModule extends AbstractModule {
             IQueue<Map<DataWriteGroup, List<DataValue>>> sink,
             Map<String, DataPointParams> paramsMap) {
 
-        long pollTimeoutSeconds = 5L;
-        return new DataTransform(source, pollTimeoutSeconds, sink, paramsMap);
+        return new DataTransform(source, sink, paramsMap);
     }
 }

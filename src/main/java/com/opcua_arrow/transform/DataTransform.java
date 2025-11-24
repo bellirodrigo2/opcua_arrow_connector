@@ -26,7 +26,7 @@ public class DataTransform implements ITransform {
     private final Map<DataWriteGroup, List<DataValue>> groupedDataValues = new HashMap<>();
     private final List<List<IOPCUADataValue>> batchList = new ArrayList<>();
 
-    public DataTransform(IQueue<List<IOPCUADataValue>> source, long pollTimeoutSeconds,
+    public DataTransform(IQueue<List<IOPCUADataValue>> source,
             IQueue<Map<DataWriteGroup, List<DataValue>>> sink, Map<String, DataPointParams> paramsMap) {
         this.source = source;
         this.sink = sink;

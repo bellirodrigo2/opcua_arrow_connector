@@ -14,6 +14,8 @@ import com.opcua_arrow.batch_builder.arrow.columns.BooleanValueColumn;
 import com.opcua_arrow.batch_builder.arrow.columns.DoubleValueColumn;
 import com.opcua_arrow.batch_builder.arrow.columns.IntegerValueColumn;
 import com.opcua_arrow.batch_builder.arrow.columns.StringValueColumn;
+import com.opcua_arrow.config.ConfigProvider;
+import com.opcua_arrow.config.InfraConfig;
 import com.opcua_arrow.data_point.DataWriteGroup;
 import com.opcua_arrow.opcua.IOPCUADataValue;
 import com.opcua_arrow.opcua.IOPCUAReader;
@@ -40,8 +42,8 @@ public class FactoryModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public BatchBufferFactory provideBatchBufferFactory() {
-        return new BatchBufferFactory();
+    public BatchBufferFactory provideBatchBufferFactory(ConfigProvider configProvider) {
+        return new BatchBufferFactory(configProvider.getInfraConfig());
     }
 
     public static class ReadTaskFactory {
@@ -64,13 +66,21 @@ public class FactoryModule extends AbstractModule {
 
     public static class BatchBufferFactory {
 
-        private static final int INITIAL_CAPACITY = 1024;
-        private static final boolean COMPRESS = true;
+        private final InfraConfig infraConfig;
+
+        public BatchBufferFactory(InfraConfig infraConfig) {
+            this.infraConfig = infraConfig;
+        }
 
         public IBufferBuilder createBatchBuffer(DataWriteGroup group) {
             Class<?> valueType = group.getValueType();
             IValueColumn valueColumn = createValueColumn(valueType);
-            return new AcumBatchArrowBuilder(INITIAL_CAPACITY, COMPRESS, valueColumn);
+            return new AcumBatchArrowBuilder(
+                    infraConfig.getInitialBufferBuilderCapacity(),
+                    infraConfig.isBufferCompressionEnabled(),
+                    valueColumn,
+                    infraConfig.getMinBufferFlushSize(),
+                    infraConfig.getMinFlushIntervalNanos());
         }
 
         private IValueColumn createValueColumn(Class<?> valueType) {

@@ -8,6 +8,8 @@ import java.util.stream.Collectors;
 import java.util.zip.GZIPOutputStream;
 
 import com.opcua_arrow.batch_builder.IBufferBuilder;
+import com.opcua_arrow.data_point.DataValue;
+import com.opcua_arrow.opcua.IOPCUADataValue;
 
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
@@ -101,11 +103,15 @@ public class BaseArrowBufferBuilder implements IBufferBuilder {
         return newVector;
     }
 
-    protected void ensureCapacityLocked() {
-        if (count < capacity)
+    protected void ensureCapacityLocked(int additionalCount) {
+        int finalCapacity = count + additionalCount;
+        if (finalCapacity < capacity)
             return;
 
         int newCapacity = capacity * 2;
+        if (newCapacity < finalCapacity) {
+            newCapacity = finalCapacity;
+        }
 
         // ID e VALUE usam suas abstrações
         valueColumn.realloc(newCapacity, allocator);
@@ -130,8 +136,24 @@ public class BaseArrowBufferBuilder implements IBufferBuilder {
     }
 
     @Override
-    public void append(int id, long timestampNanos, Object value, int statusCode) {
-        ensureCapacityLocked();
+    public void appendList(List<DataValue> dataValues) {
+        ensureCapacityLocked(dataValues.size());
+        for (DataValue dv : dataValues) {
+            IOPCUADataValue opcData = dv.getValue();
+
+            long timestamp = opcData.getTimestampLong();
+            int id = dv.getParams().getPointId();
+
+            Object value = opcData.isGood() ? opcData.getValue() : null;
+
+            int statusCode = opcData.getStatusCode();
+
+            append(id, timestamp, value, statusCode);
+        }
+
+    }
+
+    private void append(int id, long timestampNanos, Object value, int statusCode) {
 
         int row = count;
 

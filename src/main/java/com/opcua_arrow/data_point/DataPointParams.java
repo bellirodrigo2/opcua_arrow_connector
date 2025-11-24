@@ -1,9 +1,7 @@
 package com.opcua_arrow.data_point;
 
-import java.util.Map;
-
-import com.opcua_arrow.data_point.equals.EqualValue;
-import com.opcua_arrow.data_point.equals.InRangeValue;
+import com.opcua_arrow.data_point.equals.RangeEqualValue;
+import com.opcua_arrow.data_point.equals.StrictEqualValue;
 import com.opcua_arrow.service.DataPointDTO;
 
 public class DataPointParams {
@@ -65,7 +63,8 @@ public class DataPointParams {
             String nodeId = config.nodeId;
             Integer pointId = config.pointId;
             Class<?> valueTypeClass = getClassType(config.valueType);
-            IDataPointEqual equals = createEquals(config.filterType, config.filterParameters, valueTypeClass);
+            IDataPointEqual equals = createEquals(config.filterRange, config.filterIntervalSeconds,
+                    isNumeric(valueTypeClass));
             DataWriteGroup group = createDataWriteGroup(config.groupName, valueTypeClass, config.minRange,
                     config.maxRange);
             DataReadGroup interval = createDataReadGroup(valueTypeClass, config.readType, config.interval_seconds);
@@ -77,40 +76,11 @@ public class DataPointParams {
             return new DataReadGroup(clazz, readType, interval);
         }
 
-        static private double convertToDouble(Object value) {
-            if (value instanceof Number) {
-                return ((Number) value).doubleValue();
+        static private IDataPointEqual createEquals(double filterRange, long filterIntervalSeconds, boolean isNumeric) {
+            if (filterRange > 0 && isNumeric) {
+                return new RangeEqualValue(filterRange, filterIntervalSeconds);
             }
-            if (value instanceof String) {
-                return Double.parseDouble((String) value);
-            }
-            throw new IllegalArgumentException("Cannot convert parameter to double: " + value);
-        }
-
-        static private IDataPointEqual createEquals(String fitlerName, Map<String, Object> parameters, Class<?> clazz) {
-            String filterType = fitlerName.toLowerCase();
-
-            switch (filterType) {
-
-                case "equal":
-                    return new EqualValue();
-
-                case "range":
-                    if (!isNumeric(clazz)) {
-                        throw new IllegalArgumentException("Filter type 'range' requires numeric data");
-                    }
-                    Object rangeObj = parameters.get("range");
-                    if (rangeObj == null) {
-                        throw new IllegalArgumentException("Parameter 'range' is required for filter type 'range'");
-                    }
-
-                    double range = convertToDouble(rangeObj);
-                    return new InRangeValue(range);
-
-                default:
-                    throw new IllegalArgumentException("Unknown filter type: " + filterType);
-            }
-
+            return new StrictEqualValue(filterIntervalSeconds);
         }
 
         static private boolean isNumeric(Class<?> clazz) {

@@ -1,9 +1,13 @@
 package com.opcua_arrow.batch_builder;
 
+import java.util.List;
+
+import com.opcua_arrow.data_point.DataValue;
+
 public interface IBufferBuilder extends AutoCloseable {
 
     /** Add one registry */
-    void append(int id, long timestampNanos, Object value, int statusCode);
+    void appendList(List<DataValue> dataValues);
 
     /** Remove last register */
     void pop();

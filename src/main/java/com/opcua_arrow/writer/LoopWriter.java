@@ -9,7 +9,6 @@ import com.opcua_arrow.connector.ISend;
 import com.opcua_arrow.data_point.DataValue;
 import com.opcua_arrow.data_point.DataWriteGroup;
 import com.opcua_arrow.maps.BufferRegistry;
-import com.opcua_arrow.opcua.IOPCUADataValue;
 import com.opcua_arrow.queues.IQueue;
 
 import org.slf4j.Logger;
@@ -51,12 +50,21 @@ public class LoopWriter implements IWriter {
 
     private void internalWrite(Map<DataWriteGroup, List<DataValue>> data) {
         for (DataWriteGroup group : data.keySet()) {
+
             List<DataValue> nodeData = data.get(group);
-            if (!nodeData.isEmpty()) {
-                byte[] batch = buildBatch(group, nodeData);
-                if (batch != null && batch.length > 0) {
-                    sender.send(group, batch);
-                }
+            if (nodeData.isEmpty())
+                continue;
+
+            IBufferBuilder batchBuffer = bufferRegistry.get(group);
+            if (batchBuffer == null) {
+                logger.warn("No batch buffer found for group: " + group);
+                return;
+            }
+
+            batchBuffer.appendList(nodeData);
+            byte[] batch = batchBuffer.flush();
+            if (batch != null && batch.length > 0) {
+                sender.send(group, batch);
             }
         }
     }
@@ -68,36 +76,5 @@ public class LoopWriter implements IWriter {
                 batchBuffer.close();
             }
         }
-    }
-
-    private byte[] buildBatch(DataWriteGroup group, List<DataValue> nodeDataList) {
-
-        IBufferBuilder batchBuffer = bufferRegistry.get(group);
-        if (batchBuffer == null) {
-            logger.warn("No batch buffer found for group: " + group);
-            return null;
-        }
-
-        for (DataValue dataValue : nodeDataList) {
-
-            IOPCUADataValue opcData = dataValue.getValue();
-
-            long timestamp = opcData.getTimestampLong();
-            int id = dataValue.getParams().getPointId();
-
-            // Get value (null if bad status)
-            Object value = opcData.isGood() ? opcData.getValue() : null;
-
-            int statusCode = opcData.getStatusCode();
-
-            // Append to builder
-            try {
-                batchBuffer.append(id, timestamp, value, statusCode);
-            } catch (Exception e) {
-                logger.error("Failed to append data for group: {}, id: {}", group, id, e);
-            }
-        }
-
-        return batchBuffer.flush();
     }
 }
