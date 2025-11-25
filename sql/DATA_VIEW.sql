@@ -6,7 +6,7 @@ SELECT
     dpc.source_string as node_id,
     dpc.source_id as point_id,
     dp.data_type as value_type,
-    sg.name as group_name,
+    -- sg.name as group_name,
     sg.partition_range as range_config,
     fc.range as filter_range,
     fc.interval_seconds as filter_interval_seconds,

@@ -1,7 +1,10 @@
-package com.opcua_arrow.data_point;
+package com.opcua_arrow.data_point.equals2;
 
-import com.opcua_arrow.data_point.equals.RangeEqualValue;
-import com.opcua_arrow.data_point.equals.StrictEqualValue;
+import com.opcua_arrow.data_point.DataReadGroup;
+import com.opcua_arrow.data_point.DataWriteGroup;
+import com.opcua_arrow.data_point.EDataType;
+import com.opcua_arrow.data_point.EReadMode;
+import com.opcua_arrow.data_point.IntRange;
 import com.opcua_arrow.service.DataPointDTO;
 
 public class DataPointParams {

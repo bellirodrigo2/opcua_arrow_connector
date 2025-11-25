@@ -12,11 +12,11 @@ import com.opcua_arrow.batch_builder.arrow.AcumBatchArrowBuilder;
 import com.opcua_arrow.batch_builder.arrow.IValueColumn;
 import com.opcua_arrow.batch_builder.arrow.columns.BooleanValueColumn;
 import com.opcua_arrow.batch_builder.arrow.columns.DoubleValueColumn;
-import com.opcua_arrow.batch_builder.arrow.columns.IntegerValueColumn;
 import com.opcua_arrow.batch_builder.arrow.columns.StringValueColumn;
 import com.opcua_arrow.config.ConfigProvider;
 import com.opcua_arrow.config.InfraConfig;
 import com.opcua_arrow.data_point.DataWriteGroup;
+import com.opcua_arrow.data_point.EDataType;
 import com.opcua_arrow.opcua.IOPCUADataValue;
 import com.opcua_arrow.opcua.IOPCUAReader;
 import com.opcua_arrow.queues.IQueue;
@@ -73,8 +73,8 @@ public class FactoryModule extends AbstractModule {
         }
 
         public IBufferBuilder createBatchBuffer(DataWriteGroup group) {
-            Class<?> valueType = group.getValueType();
-            IValueColumn valueColumn = createValueColumn(valueType);
+            EDataType dataType = group.getDataType();
+            IValueColumn valueColumn = createValueColumn(dataType);
             return new AcumBatchArrowBuilder(
                     infraConfig.getInitialBufferBuilderCapacity(),
                     infraConfig.isBufferCompressionEnabled(),
@@ -83,18 +83,19 @@ public class FactoryModule extends AbstractModule {
                     infraConfig.getMinFlushIntervalNanos());
         }
 
-        private IValueColumn createValueColumn(Class<?> valueType) {
-            if (valueType == Double.class || valueType == double.class) {
-                return new DoubleValueColumn();
-            } else if (valueType == Integer.class || valueType == int.class) {
-                return new IntegerValueColumn();
-            } else if (valueType == Boolean.class || valueType == boolean.class) {
-                return new BooleanValueColumn();
-            } else if (valueType == String.class) {
-                return new StringValueColumn();
-            } else {
-                throw new IllegalArgumentException("Unsupported value type: " + valueType);
+        private IValueColumn createValueColumn(EDataType dataType) {
+            switch (dataType) {
+                case EDataType.NUMERIC:
+                    return new DoubleValueColumn();
+                case EDataType.BOOLEAN:
+                    return new BooleanValueColumn();
+                case EDataType.STRING:
+                    return new StringValueColumn();
+                default:
+                    break;
             }
+            throw new IllegalArgumentException("Unsupported data type: " + dataType);
         }
     }
+
 }
