@@ -8,7 +8,7 @@ import java.util.Map;
 import com.opcua_arrow.batch_builder.v2.IBufferBuilder;
 import com.opcua_arrow.connector.ISend;
 import com.opcua_arrow.data_point.DataWriteGroup;
-import com.opcua_arrow.maps.BufferRegistry;
+import com.opcua_arrow.maps.v2.BufferRegistry;
 import com.opcua_arrow.opcua.milo2.TSValue;
 import com.opcua_arrow.queues.IQueue;
 
