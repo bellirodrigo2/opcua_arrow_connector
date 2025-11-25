@@ -1,5 +1,6 @@
 package com.opcua_arrow.data_point;
 
+import com.opcua_arrow.data_point.equals.NoFilter;
 import com.opcua_arrow.data_point.equals.RangeEqualValue;
 import com.opcua_arrow.data_point.equals.StrictEqualValue;
 import com.opcua_arrow.service.DataPointDTO;
@@ -64,8 +65,8 @@ public class DataPointParams {
             Integer pointId = config.pointId;
             EDataType dataType = getDataType(config.valueType);
             EReadMode readMode = EReadMode.valueOf(config.readType.toUpperCase());
-            IDataPointEqual equals = createEquals(config.filterRange, config.filterIntervalSeconds,
-                    isNumeric(dataType));
+            IDataPointEqual equals = config.hasFilter ? createEquals(config.filterRange, config.filterIntervalSeconds,
+                    isNumeric(dataType)) : new NoFilter();
             DataWriteGroup group = createDataWriteGroup(dataType, config.minRange,
                     config.maxRange);
             DataReadGroup interval = createDataReadGroup(dataType, readMode, config.interval_seconds);

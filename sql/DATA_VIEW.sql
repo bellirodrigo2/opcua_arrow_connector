@@ -8,6 +8,7 @@ SELECT
     dp.data_type as value_type,
     -- sg.name as group_name,
     sg.partition_range as range_config,
+    fc.has_filter as has_filter,
     fc.range as filter_range,
     fc.interval_seconds as filter_interval_seconds,
     pg.read_mode as read_type,

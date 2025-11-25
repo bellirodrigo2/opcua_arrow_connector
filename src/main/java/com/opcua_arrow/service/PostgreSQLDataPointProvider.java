@@ -129,6 +129,7 @@ public class PostgreSQLDataPointProvider implements IProvideDataPoint {
             Integer pointId = rs.getInt("point_id");
             String valueType = rs.getString("value_type");
             // String groupName = rs.getString("group_name");
+            Boolean hasFilter = rs.getBoolean("has_filter");
             String rangeConfig = rs.getString("range_config");
             Double filterRange = rs.getObject("filter_range", Double.class);
             Long filterIntervalSeconds = rs.getObject("filter_interval_seconds", Long.class);
@@ -146,7 +147,7 @@ public class PostgreSQLDataPointProvider implements IProvideDataPoint {
 
             DataPointDTO dto = new DataPointDTO(
                     nodeId, valueType, pointId,
-                    minRange, maxRange, filterRangeValue, filterIntervalValue,
+                    minRange, maxRange, hasFilter, filterRangeValue, filterIntervalValue,
                     intervalSeconds, readType);
 
             dataPoints.add(dto);

@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS metadata.data_point_config(
 
 CREATE TABLE IF NOT EXISTS metadata.filter_config (
     filter_uuid UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    has_filter BOOLEAN NOT NULL DEFAULT FALSE,
     range DOUBLE PRECISION NOT NULL DEFAULT 5.0,
     interval_seconds BIGINT NOT NULL DEFAULT 30
 );

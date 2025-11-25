@@ -8,6 +8,8 @@ public class DataPointDTO {
     // public final String groupName; // map to partitions
     public final int minRange;
     public final int maxRange;
+
+    public final boolean hasFilter;
     public final double filterRange;
     public final long filterIntervalSeconds;
 
@@ -15,7 +17,7 @@ public class DataPointDTO {
     public final long interval_seconds; // loop interval
 
     public DataPointDTO(String nodeId, String valueType, Integer pointId, int minRange,
-            int maxRange, double filterRange, long filterIntervalSeconds,
+            int maxRange, boolean hasFilter, double filterRange, long filterIntervalSeconds,
             long interval_seconds, String readType) {
         this.nodeId = nodeId;
         this.valueType = valueType;
@@ -23,6 +25,7 @@ public class DataPointDTO {
         // this.groupName = groupName;
         this.minRange = minRange;
         this.maxRange = maxRange;
+        this.hasFilter = hasFilter;
         this.filterRange = filterRange;
         this.filterIntervalSeconds = filterIntervalSeconds;
         this.interval_seconds = interval_seconds;
