@@ -7,7 +7,7 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.opcua_arrow.data_point.DataReadGroup;
 import com.opcua_arrow.data_point.equals2.DataPointParams;
-import com.opcua_arrow.di.FactoryModule.ReadTaskFactory;
+import com.opcua_arrow.di.FactoryModule2.ReadTaskFactory;
 import com.opcua_arrow.maps.IRegistry;
 import com.opcua_arrow.maps.RunningState;
 import com.opcua_arrow.read.v2.ReadTask;
@@ -40,8 +40,7 @@ public class ReadTaskRegistry implements IRegistry<DataReadGroup, ReadTask> {
         DataReadGroup group = dataPointParam.getReadGroup();
         ReadTask task = map.computeIfAbsent(group, g -> {
             created[0] = true;
-            Long intervalSeconds = g.getInterval();
-            return factory.createReadTask(intervalSeconds);
+            return factory.createReadTask(group);
         });
 
         task.addDataPoint(dataPointParam);

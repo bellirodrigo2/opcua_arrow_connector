@@ -7,7 +7,7 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.opcua_arrow.batch_builder.v2.IBufferBuilder;
 import com.opcua_arrow.data_point.DataWriteGroup;
-import com.opcua_arrow.di.FactoryModule.BatchBufferFactory;
+import com.opcua_arrow.di.FactoryModule2.BatchBufferFactory;
 import com.opcua_arrow.maps.IRegistry;
 
 /**
