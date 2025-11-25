@@ -9,7 +9,7 @@ import com.google.inject.TypeLiteral;
 import com.opcua_arrow.config.ConfigProvider;
 import com.opcua_arrow.config.InfraConfig;
 import com.opcua_arrow.data.BufferPackage;
-import com.opcua_arrow.data.DataPointParams;
+import com.opcua_arrow.data.DataPoint;
 import com.opcua_arrow.data.TSValue;
 import com.opcua_arrow.queues.IQueue;
 import com.opcua_arrow.queues.QueueWrapper;
@@ -24,7 +24,7 @@ public class CoreModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bind(new TypeLiteral<Map<String, DataPointParams>>() {
+        bind(new TypeLiteral<Map<String, DataPoint>>() {
         }).toInstance(new ConcurrentHashMap<>());
 
         InfraConfig infraConfig = configProvider.getInfraConfig();

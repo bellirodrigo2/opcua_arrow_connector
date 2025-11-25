@@ -9,8 +9,8 @@ import com.opcua_arrow.batch_builder.IBufferBuilder;
 import com.opcua_arrow.data.BufferPackage;
 import com.opcua_arrow.data.DataWriteGroup;
 import com.opcua_arrow.data.TSValue;
-import com.opcua_arrow.maps.BufferRegistry;
 import com.opcua_arrow.queues.IQueue;
+import com.opcua_arrow.registry.BufferRegistry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

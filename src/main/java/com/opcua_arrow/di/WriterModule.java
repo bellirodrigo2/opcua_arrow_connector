@@ -7,8 +7,8 @@ import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.opcua_arrow.data.BufferPackage;
 import com.opcua_arrow.data.TSValue;
-import com.opcua_arrow.maps.BufferRegistry;
 import com.opcua_arrow.queues.IQueue;
+import com.opcua_arrow.registry.BufferRegistry;
 import com.opcua_arrow.writer.IWriter;
 import com.opcua_arrow.writer.LoopWriter;
 

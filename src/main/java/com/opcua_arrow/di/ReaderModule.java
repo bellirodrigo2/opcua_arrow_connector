@@ -3,9 +3,9 @@ package com.opcua_arrow.di;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
-import com.opcua_arrow.maps.ReadTaskRegistry;
 import com.opcua_arrow.read.IReader;
 import com.opcua_arrow.read.LoopReader;
+import com.opcua_arrow.registry.ReadTaskRegistry;
 
 public class ReaderModule extends AbstractModule {
 

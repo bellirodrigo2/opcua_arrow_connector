@@ -10,7 +10,7 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.opcua_arrow.config.PostgreSQLConfig;
 import com.opcua_arrow.context.Context;
-import com.opcua_arrow.data.DataPointParams;
+import com.opcua_arrow.data.DataPoint;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,7 +49,7 @@ public class DataPointLoader {
             logger.info("Found {} initial data points", dataPoints.size());
 
             for (DataPointDTO dto : dataPoints) {
-                DataPointParams params = DataPointParams.fromConfig(dto);
+                DataPoint params = DataPoint.fromConfig(dto);
                 context.update(params);
             }
 
@@ -93,7 +93,7 @@ public class DataPointLoader {
             if (!updated.isEmpty()) {
                 logger.info("Found {} updated data points", updated.size());
                 for (DataPointDTO dto : updated) {
-                    DataPointParams params = DataPointParams.fromConfig(dto);
+                    DataPoint params = DataPoint.fromConfig(dto);
                     context.update(params);
                 }
             }

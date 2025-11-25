@@ -1,9 +1,10 @@
-package com.opcua_arrow.maps;
+package com.opcua_arrow.registry;
 
 import java.util.Collection;
 
 /**
- * Generic registry interface for managing key-value mappings with thread-safe operations.
+ * Generic registry interface for managing key-value mappings with thread-safe
+ * operations.
  *
  * @param <K> the type of keys
  * @param <V> the type of values

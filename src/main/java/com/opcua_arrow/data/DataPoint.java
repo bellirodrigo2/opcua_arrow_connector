@@ -5,7 +5,7 @@ import com.opcua_arrow.data.equals.RangeEqualValue;
 import com.opcua_arrow.data.equals.StrictEqualValue;
 import com.opcua_arrow.service.DataPointDTO;
 
-public class DataPointParams {
+public class DataPoint {
 
     private final String nodeId;
     private final int pointId;
@@ -14,7 +14,7 @@ public class DataPointParams {
     private final DataWriteGroup writeGroup;
     private final DataReadGroup readGroup;
 
-    public DataPointParams(String nodeId,
+    public DataPoint(String nodeId,
             int pointId,
             EDataType dataType,
             IDataPointEqual equals,
@@ -29,8 +29,8 @@ public class DataPointParams {
 
     }
 
-    public static DataPointParams fromConfig(DataPointDTO config) {
-        return DataPointParamsFactory.createDataPointParams(config);
+    public static DataPoint fromConfig(DataPointDTO config) {
+        return DataPointFactory.createDataPoint(config);
     }
 
     public EDataType getDataType() {
@@ -57,9 +57,9 @@ public class DataPointParams {
         return nodeId;
     }
 
-    private static class DataPointParamsFactory {
+    private static class DataPointFactory {
 
-        static public DataPointParams createDataPointParams(DataPointDTO config) {
+        static public DataPoint createDataPoint(DataPointDTO config) {
 
             String nodeId = config.nodeId;
             Integer pointId = config.pointId;
@@ -71,7 +71,7 @@ public class DataPointParams {
                     config.maxRange);
             DataReadGroup interval = createDataReadGroup(dataType, readMode, config.interval_seconds);
 
-            return new DataPointParams(nodeId, pointId, dataType, equals, group, interval);
+            return new DataPoint(nodeId, pointId, dataType, equals, group, interval);
         }
 
         static private DataReadGroup createDataReadGroup(EDataType dataType, EReadMode readMode, long interval) {

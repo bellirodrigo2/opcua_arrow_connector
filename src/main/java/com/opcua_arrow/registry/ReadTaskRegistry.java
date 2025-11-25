@@ -1,11 +1,11 @@
-package com.opcua_arrow.maps;
+package com.opcua_arrow.registry;
 
 import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import com.opcua_arrow.data.DataPointParams;
+import com.opcua_arrow.data.DataPoint;
 import com.opcua_arrow.data.DataReadGroup;
 import com.opcua_arrow.di.FactoryModule.ReadTaskFactory;
 import com.opcua_arrow.read.IReader;
@@ -33,7 +33,7 @@ public class ReadTaskRegistry implements IRegistry<DataReadGroup, IReader> {
      *
      * @param dataPointParam the data point parameters
      */
-    public void getOrCreate(DataPointParams dataPointParam) {
+    public void getOrCreate(DataPoint dataPointParam) {
         boolean[] created = { false };
         DataReadGroup group = dataPointParam.getReadGroup();
         IReader reader = map.computeIfAbsent(group, g -> {

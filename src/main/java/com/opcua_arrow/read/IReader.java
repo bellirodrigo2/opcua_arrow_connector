@@ -2,15 +2,15 @@ package com.opcua_arrow.read;
 
 import java.util.List;
 
-import com.opcua_arrow.data.DataPointParams;
+import com.opcua_arrow.data.DataPoint;
 
 public interface IReader {
 
-    List<DataPointParams> getDataPointParams();
+    List<DataPoint> getDataPoint();
 
-    void addDataPoint(DataPointParams dataPointParams);
+    void addDataPoint(DataPoint DataPoint);
 
-    void removeDataPoint(DataPointParams dataPointParams);
+    void removeDataPoint(DataPoint DataPoint);
 
     void start();
 

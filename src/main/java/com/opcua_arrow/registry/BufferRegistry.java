@@ -1,4 +1,4 @@
-package com.opcua_arrow.maps;
+package com.opcua_arrow.registry;
 
 import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;

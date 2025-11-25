@@ -10,9 +10,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.opcua_arrow.data.DataPointParams;
+import com.opcua_arrow.data.DataPoint;
 import com.opcua_arrow.data.TSValue;
-import com.opcua_arrow.data.TSValueFactory;
 import com.opcua_arrow.opcua.IOPCUAConnection;
 import com.opcua_arrow.queues.IQueue;
 import com.opcua_arrow.read.IReader;
@@ -50,8 +49,8 @@ public class MiloOPCUASubscriptionReader implements IReader {
 
     private final AtomicBoolean started = new AtomicBoolean(false);
     private volatile UaSubscription subscription;
-    private final List<DataPointParams> dataPoints = new CopyOnWriteArrayList<>();
-    private final Map<String, DataPointParams> nodeIdToDataPoint = new ConcurrentHashMap<>();
+    private final List<DataPoint> dataPoints = new CopyOnWriteArrayList<>();
+    private final Map<String, DataPoint> nodeIdToDataPoint = new ConcurrentHashMap<>();
 
     public MiloOPCUASubscriptionReader(IOPCUAConnection connection, IRetryPolicy retryPolicy,
             TSValueFactory tsValueFactory, IQueue<List<TSValue>> queue, long publishingInterval) {
@@ -63,12 +62,12 @@ public class MiloOPCUASubscriptionReader implements IReader {
     }
 
     @Override
-    public List<DataPointParams> getDataPointParams() {
+    public List<DataPoint> getDataPoint() {
         return new ArrayList<>(dataPoints);
     }
 
     @Override
-    public void addDataPoint(DataPointParams dataPoint) {
+    public void addDataPoint(DataPoint dataPoint) {
         if (dataPoint == null)
             throw new IllegalArgumentException("dataPoint cannot be null");
         dataPoints.add(dataPoint);
@@ -79,7 +78,7 @@ public class MiloOPCUASubscriptionReader implements IReader {
     }
 
     @Override
-    public void removeDataPoint(DataPointParams dataPoint) {
+    public void removeDataPoint(DataPoint dataPoint) {
         if (dataPoint == null)
             return;
         dataPoints.remove(dataPoint);
@@ -176,7 +175,7 @@ public class MiloOPCUASubscriptionReader implements IReader {
                     DataValue value = dataValues.get(i);
 
                     String nodeIdStr = item.getReadValueId().getNodeId().toParseableString();
-                    DataPointParams dp = nodeIdToDataPoint.get(nodeIdStr);
+                    DataPoint dp = nodeIdToDataPoint.get(nodeIdStr);
 
                     if (dp != null) {
                         TSValue tsValue = tsValueFactory.createTSValue(dp.getPointId(), value, dp.getWriteGroup());
@@ -198,7 +197,7 @@ public class MiloOPCUASubscriptionReader implements IReader {
         });
 
         List<MonitoredItemCreateRequest> requests = new ArrayList<>();
-        for (DataPointParams dp : dataPoints) {
+        for (DataPoint dp : dataPoints) {
             requests.add(createMonitoredItemRequest(dp, subscription));
         }
 
@@ -214,7 +213,7 @@ public class MiloOPCUASubscriptionReader implements IReader {
                 });
     }
 
-    private MonitoredItemCreateRequest createMonitoredItemRequest(DataPointParams dataPoint, UaSubscription sub) {
+    private MonitoredItemCreateRequest createMonitoredItemRequest(DataPoint dataPoint, UaSubscription sub) {
         ReadValueId readValueId = new ReadValueId(
                 NodeId.parse(dataPoint.getNodeId()),
                 AttributeId.Value.uid(),

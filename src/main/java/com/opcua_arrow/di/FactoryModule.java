@@ -20,10 +20,10 @@ import com.opcua_arrow.data.DataWriteGroup;
 import com.opcua_arrow.data.EDataType;
 import com.opcua_arrow.data.EReadMode;
 import com.opcua_arrow.data.TSValue;
-import com.opcua_arrow.data.TSValueFactory;
 import com.opcua_arrow.opcua.IOPCUAConnection;
 import com.opcua_arrow.opcua.IOPCUAReader;
 import com.opcua_arrow.opcua.milo.MiloOPCUASubscriptionReader;
+import com.opcua_arrow.opcua.milo.TSValueFactory;
 import com.opcua_arrow.queues.IQueue;
 import com.opcua_arrow.read.IReader;
 import com.opcua_arrow.read.ReadTask;
@@ -48,7 +48,7 @@ public class FactoryModule extends AbstractModule {
             Provider<IRetryPolicy> retryPolicyProvider,
             Provider<TSValueFactory> tsValueFactoryProvider) {
         return new ReadTaskFactory(queue, opcuaReaderProvider, connectionProvider,
-                                   retryPolicyProvider, tsValueFactoryProvider);
+                retryPolicyProvider, tsValueFactoryProvider);
     }
 
     @Provides

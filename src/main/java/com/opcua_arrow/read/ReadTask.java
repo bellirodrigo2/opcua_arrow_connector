@@ -7,7 +7,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-import com.opcua_arrow.data.DataPointParams;
+import com.opcua_arrow.data.DataPoint;
 import com.opcua_arrow.data.TSValue;
 import com.opcua_arrow.opcua.IOPCUAReader;
 import com.opcua_arrow.queues.IQueue;
@@ -33,18 +33,18 @@ public class ReadTask implements IReader {
     }
 
     @Override
-    public List<DataPointParams> getDataPointParams() {
+    public List<DataPoint> getDataPoint() {
         return opcuaReader.getDataPoints();
     }
 
     @Override
-    public void addDataPoint(DataPointParams dataPointParams) {
-        opcuaReader.addDataPoint(dataPointParams);
+    public void addDataPoint(DataPoint DataPoint) {
+        opcuaReader.addDataPoint(DataPoint);
     }
 
     @Override
-    public void removeDataPoint(DataPointParams dataPointParams) {
-        opcuaReader.removeDataPoint(dataPointParams);
+    public void removeDataPoint(DataPoint DataPoint) {
+        opcuaReader.removeDataPoint(DataPoint);
     }
 
     @Override

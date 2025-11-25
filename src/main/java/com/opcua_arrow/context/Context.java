@@ -4,18 +4,18 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.google.inject.Inject;
-import com.opcua_arrow.data.DataPointParams;
+import com.opcua_arrow.data.DataPoint;
 import com.opcua_arrow.data.DataReadGroup;
 import com.opcua_arrow.data.DataWriteGroup;
-import com.opcua_arrow.maps.BufferRegistry;
-import com.opcua_arrow.maps.ReadTaskRegistry;
-import com.opcua_arrow.maps.RunningState;
 import com.opcua_arrow.read.IReader;
+import com.opcua_arrow.registry.BufferRegistry;
+import com.opcua_arrow.registry.ReadTaskRegistry;
+import com.opcua_arrow.registry.RunningState;
 import com.opcua_arrow.writer.IWriter;
 
 public class Context {
 
-    private final Map<String, DataPointParams> paramsMap;
+    private final Map<String, DataPoint> paramsMap;
     private final IReader reader;
     private final IWriter writer;
 
@@ -24,7 +24,7 @@ public class Context {
     private final RunningState runningState;
 
     @Inject
-    public Context(Map<String, DataPointParams> paramsMap,
+    public Context(Map<String, DataPoint> paramsMap,
             IReader reader, IWriter writer,
             ReadTaskRegistry readTaskRegistry, BufferRegistry bufferRegistry,
             RunningState runningState) {
@@ -43,10 +43,10 @@ public class Context {
                 : new ConcurrentHashMap<>(map);
     }
 
-    public void update(DataPointParams params) {
+    public void update(DataPoint params) {
         String nodeId = params.getNodeId();
 
-        DataPointParams existing = paramsMap.get(nodeId);
+        DataPoint existing = paramsMap.get(nodeId);
         DataWriteGroup newWriteGroup = params.getWriteGroup();
         DataReadGroup newReadGroup = params.getReadGroup();
 
@@ -72,7 +72,7 @@ public class Context {
     }
 
     public void delete(String nodeId) {
-        DataPointParams existing = paramsMap.remove(nodeId);
+        DataPoint existing = paramsMap.remove(nodeId);
         if (existing != null) {
             reader.removeDataPoint(existing);
             DataWriteGroup writeGroup = existing.getWriteGroup();
@@ -83,7 +83,7 @@ public class Context {
     }
 
     private boolean hasDataWriteGroup(DataWriteGroup writeGroup) {
-        for (DataPointParams params : paramsMap.values()) {
+        for (DataPoint params : paramsMap.values()) {
             if (params.getWriteGroup().equals(writeGroup)) {
                 return true;
             }

@@ -4,11 +4,11 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.opcua_arrow.config.ConfigProvider;
 import com.opcua_arrow.config.OPCUAClientConfig;
-import com.opcua_arrow.data.TSValueFactory;
 import com.opcua_arrow.opcua.IOPCUAConnection;
 import com.opcua_arrow.opcua.IOPCUAReader;
 import com.opcua_arrow.opcua.milo.MiloOPCUAConnection;
 import com.opcua_arrow.opcua.milo.MiloOPCUAReader;
+import com.opcua_arrow.opcua.milo.TSValueFactory;
 import com.opcua_arrow.retry.IRetryPolicy;
 import com.opcua_arrow.retry.resilience4j.Resilience4jRetryPolicy;
 
