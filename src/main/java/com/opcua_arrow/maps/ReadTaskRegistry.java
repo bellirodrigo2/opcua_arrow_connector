@@ -8,15 +8,15 @@ import com.google.inject.Singleton;
 import com.opcua_arrow.data.DataPointParams;
 import com.opcua_arrow.data.DataReadGroup;
 import com.opcua_arrow.di.FactoryModule.ReadTaskFactory;
-import com.opcua_arrow.read.ReadTask;
+import com.opcua_arrow.read.IReader;
 
 /**
- * Thread-safe registry for managing ReadTask instances keyed by DataReadGroup.
+ * Thread-safe registry for managing IReader instances keyed by DataReadGroup.
  */
 @Singleton
-public class ReadTaskRegistry implements IRegistry<DataReadGroup, ReadTask> {
+public class ReadTaskRegistry implements IRegistry<DataReadGroup, IReader> {
 
-    private final ConcurrentHashMap<DataReadGroup, ReadTask> map = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<DataReadGroup, IReader> map = new ConcurrentHashMap<>();
     private final ReadTaskFactory factory;
     private final RunningState runningState;
 
@@ -27,29 +27,29 @@ public class ReadTaskRegistry implements IRegistry<DataReadGroup, ReadTask> {
     }
 
     /**
-     * Gets or creates a ReadTask for the given group, adding the nodeId to it.
-     * If a new task is created and the application is running, the task is started.
+     * Gets or creates an IReader for the given group, adding the dataPoint to it.
+     * If a new reader is created and the application is running, the reader is
+     * started.
      *
-     * @param group  the read group key
-     * @param nodeId the node ID to add to the task
+     * @param dataPointParam the data point parameters
      */
     public void getOrCreate(DataPointParams dataPointParam) {
         boolean[] created = { false };
         DataReadGroup group = dataPointParam.getReadGroup();
-        ReadTask task = map.computeIfAbsent(group, g -> {
+        IReader reader = map.computeIfAbsent(group, g -> {
             created[0] = true;
-            return factory.createReadTask(group);
+            return factory.createReader(group);
         });
 
-        task.addDataPoint(dataPointParam);
+        reader.addDataPoint(dataPointParam);
 
         if (created[0] && runningState.isRunning()) {
-            task.start();
+            reader.start();
         }
     }
 
     @Override
-    public ReadTask get(DataReadGroup key) {
+    public IReader get(DataReadGroup key) {
         return map.get(key);
     }
 
@@ -64,7 +64,7 @@ public class ReadTaskRegistry implements IRegistry<DataReadGroup, ReadTask> {
     }
 
     @Override
-    public Collection<ReadTask> values() {
+    public Collection<IReader> values() {
         return map.values();
     }
 }

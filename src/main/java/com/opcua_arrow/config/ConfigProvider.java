@@ -13,11 +13,13 @@ public class ConfigProvider {
     private final PostgreSQLConfig postgreSQLConfig;
     private final RetryPolicyConfig retryPolicyConfig;
     private final InfraConfig infraConfig;
+    private final OPCUAClientConfig opcuaClientConfig;
 
     public ConfigProvider() {
         this.postgreSQLConfig = loadPostgreSQLConfig();
         this.retryPolicyConfig = loadRetryPolicyConfig();
         this.infraConfig = loadInfraConfig();
+        this.opcuaClientConfig = loadOPCUAClientConfig();
 
         // Validate all configurations
         validateConfigurations();
@@ -26,6 +28,7 @@ public class ConfigProvider {
         logger.debug("PostgreSQL Config: {}", postgreSQLConfig);
         logger.debug("Retry Policy Config: {}", retryPolicyConfig);
         logger.debug("Infra Config: {}", infraConfig);
+        logger.debug("OPCUA Client Config: {}", opcuaClientConfig);
     }
     
     private PostgreSQLConfig loadPostgreSQLConfig() {
@@ -60,7 +63,30 @@ public class ConfigProvider {
             throw new RuntimeException("Infra configuration error", e);
         }
     }
-    
+
+    private OPCUAClientConfig loadOPCUAClientConfig() {
+        try {
+            String serverUrl = System.getenv().getOrDefault("OPCUA_SERVER_URL", "opc.tcp://localhost:4840");
+            String username = System.getenv("OPCUA_USERNAME");
+            String password = System.getenv("OPCUA_PASSWORD");
+
+            OPCUAClientConfig config = new OPCUAClientConfig()
+                    .setServerUrl(serverUrl);
+
+            if (username != null) {
+                config.setUsername(username);
+            }
+            if (password != null) {
+                config.setPassword(password);
+            }
+
+            return config;
+        } catch (Exception e) {
+            logger.error("Failed to load OPC UA Client configuration", e);
+            throw new RuntimeException("OPC UA Client configuration error", e);
+        }
+    }
+
     private void validateConfigurations() {
         try {
             postgreSQLConfig.validate();
@@ -83,7 +109,11 @@ public class ConfigProvider {
     public InfraConfig getInfraConfig() {
         return infraConfig;
     }
-    
+
+    public OPCUAClientConfig getOPCUAClientConfig() {
+        return opcuaClientConfig;
+    }
+
     /**
      * Create a configuration for testing with default values
      */
@@ -113,6 +143,7 @@ public class ConfigProvider {
         this.postgreSQLConfig = postgreSQLConfig;
         this.retryPolicyConfig = retryPolicyConfig;
         this.infraConfig = infraConfig;
+        this.opcuaClientConfig = new OPCUAClientConfig().setServerUrl("opc.tcp://localhost:4840");
         validateConfigurations();
         logger.info("Test configuration loaded");
     }

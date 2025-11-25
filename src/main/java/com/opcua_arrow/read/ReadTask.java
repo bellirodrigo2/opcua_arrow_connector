@@ -32,18 +32,22 @@ public class ReadTask implements IReader {
         this.queue = queue;
     }
 
-    public List<DataPointParams> geDataPointParams() {
+    @Override
+    public List<DataPointParams> getDataPointParams() {
         return opcuaReader.getDataPoints();
     }
 
+    @Override
     public void addDataPoint(DataPointParams dataPointParams) {
         opcuaReader.addDataPoint(dataPointParams);
     }
 
+    @Override
     public void removeDataPoint(DataPointParams dataPointParams) {
         opcuaReader.removeDataPoint(dataPointParams);
     }
 
+    @Override
     public void start() {
         // iniciar execução periódica
         scheduledTask = executor.scheduleAtFixedRate(() -> {
@@ -62,6 +66,7 @@ public class ReadTask implements IReader {
         }, 0, intervalSeconds, TimeUnit.SECONDS);
     }
 
+    @Override
     public void stop() {
         if (scheduledTask != null) {
             scheduledTask.cancel(false);

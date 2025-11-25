@@ -24,6 +24,7 @@ public class ApplicationModule extends AbstractModule {
         bind(ConfigProvider.class).toInstance(configProvider);
 
         install(new CoreModule(configProvider));
+        install(new OPCUAModule());
         install(new ReaderModule());
         install(new WriterModule());
         install(new FactoryModule());
