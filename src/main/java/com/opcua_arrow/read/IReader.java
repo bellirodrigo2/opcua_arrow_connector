@@ -1,13 +1,14 @@
 package com.opcua_arrow.read;
 
-import com.opcua_arrow.data_point.DataReadGroup;
+import com.opcua_arrow.data_point.DataPointParams;
 
 public interface IReader {
-    void addNodeId(DataReadGroup readGroup, String nodeId);
 
-    void removeNodeId(DataReadGroup readGroup, String nodeId);
+    void addDataPoint(DataPointParams dataPointParams);
 
-    void read();
+    void removeDataPoint(DataPointParams dataPointParams);
+
+    void start();
 
     void stop();
 

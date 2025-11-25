@@ -7,14 +7,15 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-import com.opcua_arrow.opcua.IOPCUADataValue;
+import com.opcua_arrow.data_point.DataPointParams;
+import com.opcua_arrow.data_point.TSValue;
 import com.opcua_arrow.opcua.IOPCUAReader;
 import com.opcua_arrow.queues.IQueue;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ReadTask implements IReadTask {
+public class ReadTask implements IReader {
 
     private static final Logger logger = LoggerFactory.getLogger(ReadTask.class);
     private ScheduledFuture<?> scheduledTask;
@@ -22,25 +23,25 @@ public class ReadTask implements IReadTask {
 
     private final IOPCUAReader opcuaReader;
     private final Long intervalSeconds;
-    private final IQueue<List<IOPCUADataValue>> queue;
+    private final IQueue<List<TSValue>> queue;
 
     public ReadTask(IOPCUAReader opcuaReader, Long intervalSeconds,
-            IQueue<List<IOPCUADataValue>> queue) {
+            IQueue<List<TSValue>> queue) {
         this.opcuaReader = opcuaReader;
         this.intervalSeconds = intervalSeconds;
         this.queue = queue;
     }
 
-    public List<String> getNodeIds() {
-        return opcuaReader.getNodeIds();
+    public List<DataPointParams> geDataPointParams() {
+        return opcuaReader.getDataPoints();
     }
 
-    public void addNodeId(String nodeId) {
-        opcuaReader.addNodeId(nodeId);
+    public void addDataPoint(DataPointParams dataPointParams) {
+        opcuaReader.addDataPoint(dataPointParams);
     }
 
-    public void removeNodeId(String nodeId) {
-        opcuaReader.removeNodeId(nodeId);
+    public void removeDataPoint(DataPointParams dataPointParams) {
+        opcuaReader.removeDataPoint(dataPointParams);
     }
 
     public void start() {
@@ -48,7 +49,7 @@ public class ReadTask implements IReadTask {
         scheduledTask = executor.scheduleAtFixedRate(() -> {
             opcuaReader.read().thenAccept(values -> {
                 try {
-                    List<IOPCUADataValue> safeList = new ArrayList<>(values);
+                    List<TSValue> safeList = new ArrayList<>(values);
                     queue.push(safeList);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();

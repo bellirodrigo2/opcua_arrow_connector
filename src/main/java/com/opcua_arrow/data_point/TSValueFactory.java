@@ -1,8 +1,6 @@
-package com.opcua_arrow.opcua.milo2;
+package com.opcua_arrow.data_point;
 
 import java.time.Instant;
-
-import com.opcua_arrow.data_point.DataWriteGroup;
 
 import org.eclipse.milo.opcua.stack.core.types.builtin.DataValue;
 import org.eclipse.milo.opcua.stack.core.types.builtin.DateTime;

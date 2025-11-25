@@ -2,12 +2,12 @@ package com.opcua_arrow.batch_builder;
 
 import java.util.List;
 
-import com.opcua_arrow.data_point.DataValue;
+import com.opcua_arrow.data_point.TSValue;
 
 public interface IBufferBuilder extends AutoCloseable {
 
     /** Add one registry */
-    void appendList(List<DataValue> dataValues);
+    void appendList(List<TSValue> dataValues);
 
     /** Remove last register */
     void pop();

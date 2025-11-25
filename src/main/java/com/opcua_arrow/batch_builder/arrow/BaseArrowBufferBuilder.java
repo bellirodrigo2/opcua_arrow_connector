@@ -8,11 +8,11 @@ import java.util.stream.Collectors;
 import java.util.zip.GZIPOutputStream;
 
 import com.opcua_arrow.batch_builder.IBufferBuilder;
-import com.opcua_arrow.data_point.DataValue;
-import com.opcua_arrow.opcua.IOPCUADataValue;
+import com.opcua_arrow.data_point.TSValue;
 
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
+import org.apache.arrow.vector.BitVector;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.IntVector;
 import org.apache.arrow.vector.TimeStampNanoTZVector;
@@ -31,7 +31,7 @@ public class BaseArrowBufferBuilder implements IBufferBuilder {
     protected VectorSchemaRoot root;
     protected IntVector idVector;
     protected TimeStampNanoTZVector timestampVector;
-    protected IntVector statusCodeVector;
+    protected BitVector statusCodeVector;
 
     protected int capacity;
     protected int count;
@@ -74,7 +74,7 @@ public class BaseArrowBufferBuilder implements IBufferBuilder {
         // bind nas colunas específicas pelo nome (pelo seu SchemaUtils)
         timestampVector = (TimeStampNanoTZVector) root.getVector("timestamp");
         valueColumn.bind(root.getVector("value"));
-        statusCodeVector = (IntVector) root.getVector("statuscode");
+        statusCodeVector = (BitVector) root.getVector("statuscode");
         idVector = (IntVector) root.getVector("pointid");
 
         count = 0;
@@ -136,31 +136,23 @@ public class BaseArrowBufferBuilder implements IBufferBuilder {
     }
 
     @Override
-    public void appendList(List<DataValue> dataValues) {
+    public void appendList(List<TSValue> dataValues) {
         ensureCapacityLocked(dataValues.size());
-        for (DataValue dv : dataValues) {
-            IOPCUADataValue opcData = dv.getValue();
+        for (TSValue dv : dataValues) {
 
-            long timestamp = opcData.getTimestampLong();
-            int id = dv.getParams().getPointId();
-
-            Object value = opcData.isGood() ? opcData.getValue() : null;
-
-            int statusCode = opcData.getStatusCode();
-
-            append(id, timestamp, value, statusCode);
+            append(dv.id, dv.timestamp, dv.value, dv.isGood);
         }
 
     }
 
-    private void append(int id, long timestampNanos, Object value, int statusCode) {
+    private void append(int id, long timestampNanos, Object value, boolean statusCode) {
 
         int row = count;
 
         idVector.setSafe(row, id);
         timestampVector.setSafe(row, timestampNanos);
         valueColumn.set(row, value);
-        statusCodeVector.setSafe(row, statusCode);
+        statusCodeVector.setSafe(row, statusCode ? 1 : 0);
 
         count++;
     }

@@ -15,9 +15,10 @@ import com.opcua_arrow.batch_builder.arrow.columns.DoubleValueColumn;
 import com.opcua_arrow.batch_builder.arrow.columns.StringValueColumn;
 import com.opcua_arrow.config.ConfigProvider;
 import com.opcua_arrow.config.InfraConfig;
+import com.opcua_arrow.data_point.DataReadGroup;
 import com.opcua_arrow.data_point.DataWriteGroup;
 import com.opcua_arrow.data_point.EDataType;
-import com.opcua_arrow.opcua.IOPCUADataValue;
+import com.opcua_arrow.data_point.TSValue;
 import com.opcua_arrow.opcua.IOPCUAReader;
 import com.opcua_arrow.queues.IQueue;
 import com.opcua_arrow.read.ReadTask;
@@ -35,7 +36,7 @@ public class FactoryModule extends AbstractModule {
     @Provides
     @Singleton
     public ReadTaskFactory provideReadTaskFactory(
-            IQueue<List<IOPCUADataValue>> queue,
+            IQueue<List<TSValue>> queue,
             Provider<IOPCUAReader> opcuaReaderProvider) {
         return new ReadTaskFactory(queue, opcuaReaderProvider);
     }
@@ -47,19 +48,20 @@ public class FactoryModule extends AbstractModule {
     }
 
     public static class ReadTaskFactory {
-        private final IQueue<List<IOPCUADataValue>> queue;
+        private final IQueue<List<TSValue>> queue;
         private final Provider<IOPCUAReader> opcuaReaderProvider;
 
         @Inject
         public ReadTaskFactory(
-                IQueue<List<IOPCUADataValue>> queue,
+                IQueue<List<TSValue>> queue,
                 Provider<IOPCUAReader> opcuaReaderProvider) {
             this.queue = queue;
             this.opcuaReaderProvider = opcuaReaderProvider;
         }
 
-        public ReadTask createReadTask(Long intervalSeconds) {
+        public ReadTask createReadTask(DataReadGroup readGroup) {
             IOPCUAReader opcuaReader = opcuaReaderProvider.get();
+            Long intervalSeconds = readGroup.getInterval();
             return new ReadTask(opcuaReader, intervalSeconds, queue);
         }
     }

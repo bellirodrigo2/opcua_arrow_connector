@@ -1,7 +1,5 @@
 package com.opcua_arrow.data_point;
 
-import com.opcua_arrow.opcua.IOPCUADataValue;
-
 public interface IDataPointEqual {
 
     /**
@@ -9,5 +7,5 @@ public interface IDataPointEqual {
      * @param other
      * @return
      */
-    boolean isEqual(IOPCUADataValue anObject);
+    boolean isEqual(Object newValue, boolean newIsGood);
 }

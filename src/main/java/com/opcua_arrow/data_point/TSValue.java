@@ -1,6 +1,4 @@
-package com.opcua_arrow.opcua.milo2;
-
-import com.opcua_arrow.data_point.DataWriteGroup;
+package com.opcua_arrow.data_point;
 
 public class TSValue {
     public final int id;

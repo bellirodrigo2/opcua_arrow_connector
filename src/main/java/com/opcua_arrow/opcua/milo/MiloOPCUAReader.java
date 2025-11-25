@@ -7,8 +7,10 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.opcua_arrow.data_point.DataPointParams;
+import com.opcua_arrow.data_point.TSValue;
+import com.opcua_arrow.data_point.TSValueFactory;
 import com.opcua_arrow.opcua.IOPCUAConnection;
-import com.opcua_arrow.opcua.IOPCUADataValue;
 import com.opcua_arrow.opcua.IOPCUAReader;
 import com.opcua_arrow.retry.IRetryPolicy;
 
@@ -28,16 +30,17 @@ public class MiloOPCUAReader implements IOPCUAReader {
 
     private final IRetryPolicy retryPolicy;
     private final IOPCUAConnection connection;
+    private final TSValueFactory tsValueFactory;
 
     // ------------------------------------------------------------
     // Snapshot atomico e imutável
     // ------------------------------------------------------------
     private static final class NodeSnapshot {
-        final List<String> nodeIds;
+        final List<DataPointParams> dataPoints;
         final List<ReadValueId> readValueIds;
 
-        NodeSnapshot(List<String> nodeIds, List<ReadValueId> readValueIds) {
-            this.nodeIds = nodeIds;
+        NodeSnapshot(List<DataPointParams> dataPoints, List<ReadValueId> readValueIds) {
+            this.dataPoints = dataPoints;
             this.readValueIds = readValueIds;
         }
     }
@@ -46,61 +49,62 @@ public class MiloOPCUAReader implements IOPCUAReader {
             new NodeSnapshot(List.of(), List.of()));
 
     // ------------------------------------------------------------
-    public MiloOPCUAReader(IOPCUAConnection connection, IRetryPolicy retryPolicy) {
+    public MiloOPCUAReader(IOPCUAConnection connection, IRetryPolicy retryPolicy, TSValueFactory tsValueFactory) {
         this.connection = connection;
         this.retryPolicy = retryPolicy;
+        this.tsValueFactory = tsValueFactory;
     }
 
     @Override
-    public List<String> getNodeIds() {
-        return snapshotRef.get().nodeIds;
+    public List<DataPointParams> getDataPoints() {
+        return snapshotRef.get().dataPoints;
     }
 
     // ------------------------------------------------------------
     // LOCK-FREE NODE LIST MANAGEMENT
     // ------------------------------------------------------------
     @Override
-    public void setNodeIds(List<String> nodeIds) {
-        if (nodeIds == null)
-            throw new IllegalArgumentException("nodeIds cannot be null");
-        applyUpdate(old -> List.copyOf(nodeIds));
+    public void setDataPoints(List<DataPointParams> dataPoints) {
+        if (dataPoints == null)
+            throw new IllegalArgumentException("dataPoints cannot be null");
+        applyUpdate(old -> List.copyOf(dataPoints));
     }
 
     @Override
-    public void addNodeId(String nodeId) {
-        if (nodeId == null)
-            throw new IllegalArgumentException("nodeId cannot be null");
+    public void addDataPoint(DataPointParams dataPoint) {
+        if (dataPoint == null)
+            throw new IllegalArgumentException("dataPoint cannot be null");
 
         applyUpdate(old -> {
-            List<String> newList = new ArrayList<>(old);
-            newList.add(nodeId);
+            List<DataPointParams> newList = new ArrayList<>(old);
+            newList.add(dataPoint);
             return List.copyOf(newList);
         });
     }
 
     @Override
-    public void removeNodeId(String nodeId) {
-        if (nodeId == null)
+    public void removeDataPoint(DataPointParams dataPoint) {
+        if (dataPoint == null)
             return;
 
         applyUpdate(old -> old.stream()
-                .filter(id -> !id.equals(nodeId))
+                .filter(id -> !id.equals(dataPoint))
                 .collect(Collectors.toUnmodifiableList()));
     }
 
     // ------------------------------------------------------------
     // ATUALIZAÇÃO ATÔMICA COM SNAPSHOT ÚNICO
     // ------------------------------------------------------------
-    private void applyUpdate(Function<List<String>, List<String>> updater) {
+    private void applyUpdate(Function<List<DataPointParams>, List<DataPointParams>> updater) {
         while (true) {
             NodeSnapshot oldSnap = snapshotRef.get();
-            List<String> oldList = oldSnap.nodeIds;
+            List<DataPointParams> oldList = oldSnap.dataPoints;
 
-            List<String> newList = updater.apply(oldList);
+            List<DataPointParams> newList = updater.apply(oldList);
 
             List<ReadValueId> newReadValues = newList.stream()
-                    .map(id -> new ReadValueId(
-                            NodeId.parse(id),
+                    .map(dataPoint -> new ReadValueId(
+                            NodeId.parse(dataPoint.getNodeId()),
                             AttributeId.Value.uid(),
                             null,
                             QualifiedName.NULL_VALUE))
@@ -117,8 +121,9 @@ public class MiloOPCUAReader implements IOPCUAReader {
     // ------------------------------------------------------------
     // OPC-UA CONNECTION & READ
     // ------------------------------------------------------------
+
     @Override
-    public CompletableFuture<List<IOPCUADataValue>> read() {
+    public CompletableFuture<List<TSValue>> read() {
         if (connection == null) {
             return CompletableFuture.failedFuture(
                     new IllegalArgumentException("Connection is null"));
@@ -126,7 +131,7 @@ public class MiloOPCUAReader implements IOPCUAReader {
         return retryPolicy.executeWithRetry(this::readInternal);
     }
 
-    private CompletableFuture<List<IOPCUADataValue>> readInternal() {
+    private CompletableFuture<List<TSValue>> readInternal() {
         var lock = connection.getClientLock();
         lock.readLock().lock();
         try {
@@ -137,16 +142,22 @@ public class MiloOPCUAReader implements IOPCUAReader {
 
             // snapshot consistente
             NodeSnapshot snap = snapshotRef.get();
-            List<String> ids = snap.nodeIds;
+            List<DataPointParams> ids = snap.dataPoints;
             List<ReadValueId> rvids = snap.readValueIds;
 
             return client.read(0, TimestampsToReturn.Both, rvids)
                     .thenApply(response -> {
                         DataValue[] results = response.getResults();
-                        List<IOPCUADataValue> values = new ArrayList<>(results.length);
+                        int n = results.length;
+                        List<TSValue> values = new ArrayList<>(n);
 
-                        for (int i = 0; i < results.length; i++) {
-                            values.add(new MiloDataValueAdapter(results[i], ids.get(i)));
+                        for (int i = 0; i < n; i++) {
+                            DataPointParams dp = ids.get(i);
+                            TSValue tsValue = tsValueFactory.createTSValue(dp.getPointId(), results[i],
+                                    dp.getWriteGroup());
+                            if (tsValue.isConsistent() && dp.getEquals().isEqual(tsValue.value, tsValue.isGood)) {
+                                values.add(tsValue);
+                            }
                         }
                         return values;
                     });

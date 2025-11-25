@@ -5,6 +5,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.opcua_arrow.data_point.DataPointParams;
 import com.opcua_arrow.data_point.DataReadGroup;
 import com.opcua_arrow.di.FactoryModule.ReadTaskFactory;
 import com.opcua_arrow.read.ReadTask;
@@ -32,16 +33,15 @@ public class ReadTaskRegistry implements IRegistry<DataReadGroup, ReadTask> {
      * @param group  the read group key
      * @param nodeId the node ID to add to the task
      */
-    public void getOrCreate(DataReadGroup group, String nodeId) {
+    public void getOrCreate(DataPointParams dataPointParam) {
         boolean[] created = { false };
-
+        DataReadGroup group = dataPointParam.getReadGroup();
         ReadTask task = map.computeIfAbsent(group, g -> {
             created[0] = true;
-            Long intervalSeconds = g.getInterval();
-            return factory.createReadTask(intervalSeconds);
+            return factory.createReadTask(group);
         });
 
-        task.addNodeId(nodeId);
+        task.addDataPoint(dataPointParam);
 
         if (created[0] && runningState.isRunning()) {
             task.start();

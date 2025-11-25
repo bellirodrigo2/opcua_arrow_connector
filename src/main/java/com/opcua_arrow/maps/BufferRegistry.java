@@ -10,7 +10,8 @@ import com.opcua_arrow.data_point.DataWriteGroup;
 import com.opcua_arrow.di.FactoryModule.BatchBufferFactory;
 
 /**
- * Thread-safe registry for managing IBufferBuilder instances keyed by DataWriteGroup.
+ * Thread-safe registry for managing IBufferBuilder instances keyed by
+ * DataWriteGroup.
  */
 @Singleton
 public class BufferRegistry implements IRegistry<DataWriteGroup, IBufferBuilder> {

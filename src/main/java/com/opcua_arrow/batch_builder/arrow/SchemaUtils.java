@@ -16,7 +16,7 @@ public class SchemaUtils {
 
     /**
      * Creates an Arrow schema for OPC-UA data.
-     * 
+     *
      * @param valueType The Java class of the value type
      * @param idLookup  Optional ID lookup map for converting node IDs to integers
      * @return The Arrow schema
@@ -36,14 +36,14 @@ public class SchemaUtils {
         fields.add(Field.nullable("value", arrowValueType));
 
         // Add statuscode field
-        fields.add(Field.notNullable("statuscode", new ArrowType.Int(32, true)));
+        fields.add(Field.notNullable("statuscode", ArrowType.Bool.INSTANCE));
 
         return new Schema(fields);
     }
 
     /**
      * Maps Java types to Arrow types.
-     * 
+     *
      * @param javaType The Java class
      * @return The corresponding Arrow type
      */

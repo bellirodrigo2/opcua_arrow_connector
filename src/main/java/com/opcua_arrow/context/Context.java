@@ -11,7 +11,6 @@ import com.opcua_arrow.maps.BufferRegistry;
 import com.opcua_arrow.maps.ReadTaskRegistry;
 import com.opcua_arrow.maps.RunningState;
 import com.opcua_arrow.read.IReader;
-import com.opcua_arrow.transform.ITransform;
 import com.opcua_arrow.writer.IWriter;
 
 public class Context {
@@ -19,7 +18,6 @@ public class Context {
     private final Map<String, DataPointParams> paramsMap;
     private final IReader reader;
     private final IWriter writer;
-    private final ITransform transform;
 
     private final ReadTaskRegistry readTaskRegistry;
     private final BufferRegistry bufferRegistry;
@@ -27,14 +25,13 @@ public class Context {
 
     @Inject
     public Context(Map<String, DataPointParams> paramsMap,
-            IReader reader, IWriter writer, ITransform transform,
+            IReader reader, IWriter writer,
             ReadTaskRegistry readTaskRegistry, BufferRegistry bufferRegistry,
             RunningState runningState) {
 
         this.paramsMap = ensureConcurrent(paramsMap);
         this.reader = reader;
         this.writer = writer;
-        this.transform = transform;
         this.readTaskRegistry = readTaskRegistry;
         this.bufferRegistry = bufferRegistry;
         this.runningState = runningState;
@@ -46,11 +43,38 @@ public class Context {
                 : new ConcurrentHashMap<>(map);
     }
 
+    public void update(DataPointParams params) {
+        String nodeId = params.getNodeId();
+
+        DataPointParams existing = paramsMap.get(nodeId);
+        DataWriteGroup newWriteGroup = params.getWriteGroup();
+        DataReadGroup newReadGroup = params.getReadGroup();
+
+        if (existing == null) {
+            paramsMap.put(nodeId, params);
+            bufferRegistry.getOrCreate(newWriteGroup);
+            readTaskRegistry.getOrCreate(params);
+            return;
+        }
+
+        DataWriteGroup existingWriteGroup = existing.getWriteGroup();
+        if (!existingWriteGroup.equals(newWriteGroup)) {
+            if (!bufferRegistry.containsKey(existingWriteGroup)) {
+                bufferRegistry.getOrCreate(newWriteGroup);
+            }
+        }
+
+        DataReadGroup existingReadGroup = existing.getReadGroup();
+        if (!existingReadGroup.equals(newReadGroup)) {
+            reader.addDataPoint(params);
+            reader.removeDataPoint(existing);
+        }
+    }
+
     public void delete(String nodeId) {
         DataPointParams existing = paramsMap.remove(nodeId);
         if (existing != null) {
-            DataReadGroup readGroup = existing.getReadGroup();
-            reader.removeNodeId(readGroup, nodeId);
+            reader.removeDataPoint(existing);
             DataWriteGroup writeGroup = existing.getWriteGroup();
             if (!hasDataWriteGroup(writeGroup)) {
                 bufferRegistry.remove(writeGroup);
@@ -67,38 +91,9 @@ public class Context {
         return false;
     }
 
-    public void update(DataPointParams params) {
-        String nodeId = params.getNodeId();
-
-        DataPointParams existing = paramsMap.get(nodeId);
-        DataWriteGroup newWriteGroup = params.getWriteGroup();
-        DataReadGroup newReadGroup = params.getReadGroup();
-
-        if (existing == null) {
-            paramsMap.put(nodeId, params);
-            bufferRegistry.getOrCreate(newWriteGroup);
-            readTaskRegistry.getOrCreate(newReadGroup, nodeId);
-            return;
-        }
-
-        DataWriteGroup existingWriteGroup = existing.getWriteGroup();
-        if (!existingWriteGroup.equals(newWriteGroup)) {
-            if (!bufferRegistry.containsKey(existingWriteGroup)) {
-                bufferRegistry.getOrCreate(newWriteGroup);
-            }
-        }
-
-        DataReadGroup existingReadGroup = existing.getReadGroup();
-        if (!existingReadGroup.equals(newReadGroup)) {
-            reader.addNodeId(newReadGroup, nodeId);
-            reader.removeNodeId(existingReadGroup, nodeId);
-        }
-    }
-
     public void start() {
         writer.write();
-        transform.transform();
-        reader.read();
+        reader.start();
         runningState.setRunning(true);
     }
 

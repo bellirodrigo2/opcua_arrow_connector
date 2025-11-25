@@ -25,7 +25,6 @@ public class ApplicationModule extends AbstractModule {
 
         install(new CoreModule(configProvider));
         install(new ReaderModule());
-        install(new TransformModule());
         install(new WriterModule());
         install(new FactoryModule());
         install(new SenderModule()); // Temporary bindings

@@ -1,13 +1,14 @@
 package com.opcua_arrow.writer;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import com.opcua_arrow.batch_builder.IBufferBuilder;
 import com.opcua_arrow.connector.ISend;
-import com.opcua_arrow.data_point.DataValue;
 import com.opcua_arrow.data_point.DataWriteGroup;
+import com.opcua_arrow.data_point.TSValue;
 import com.opcua_arrow.maps.BufferRegistry;
 import com.opcua_arrow.queues.IQueue;
 
@@ -16,15 +17,16 @@ import org.slf4j.LoggerFactory;
 
 public class LoopWriter implements IWriter {
     private static final Logger logger = LoggerFactory.getLogger(LoopWriter.class);
-    private final IQueue<Map<DataWriteGroup, List<DataValue>>> source;
+    private final IQueue<List<TSValue>> source;
     private final ISend sender;
     private final BufferRegistry bufferRegistry;
 
-    private final List<Map<DataWriteGroup, List<DataValue>>> reusableDataList = new ArrayList<>();
+    private final List<List<TSValue>> reusableDataList = new ArrayList<>();
+    private final Map<DataWriteGroup, List<TSValue>> reusableDataMap = new HashMap<>();
 
     public LoopWriter(
             BufferRegistry bufferRegistry,
-            IQueue<Map<DataWriteGroup, List<DataValue>>> source,
+            IQueue<List<TSValue>> source,
             ISend sender) {
         this.bufferRegistry = bufferRegistry;
         this.source = source;
@@ -35,23 +37,29 @@ public class LoopWriter implements IWriter {
     public void write() {
         try {
             while (true) {
-                for (Map<DataWriteGroup, List<DataValue>> data : reusableDataList) {
+                reusableDataList.clear();
+                source.pop(reusableDataList);
+                for (List<TSValue> data : reusableDataMap.values()) {
                     data.clear();
                 }
-                source.pop(reusableDataList);
-                for (Map<DataWriteGroup, List<DataValue>> data : reusableDataList) {
-                    internalWrite(data);
+                for (List<TSValue> data : reusableDataList) {
+                    for (TSValue tsValue : data) {
+                        reusableDataMap
+                                .computeIfAbsent(tsValue.writeGroup, k -> new ArrayList<>())
+                                .add(tsValue);
+                    }
                 }
+                internalWrite(reusableDataMap);
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
     }
 
-    private void internalWrite(Map<DataWriteGroup, List<DataValue>> data) {
+    private void internalWrite(Map<DataWriteGroup, List<TSValue>> data) {
         for (DataWriteGroup group : data.keySet()) {
 
-            List<DataValue> nodeData = data.get(group);
+            List<TSValue> nodeData = data.get(group);
             if (nodeData.isEmpty())
                 continue;
 

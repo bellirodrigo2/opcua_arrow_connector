@@ -1,6 +1,6 @@
 package com.opcua_arrow.read;
 
-import com.opcua_arrow.data_point.DataReadGroup;
+import com.opcua_arrow.data_point.DataPointParams;
 import com.opcua_arrow.maps.ReadTaskRegistry;
 
 import org.slf4j.Logger;
@@ -15,24 +15,24 @@ public class LoopReader implements IReader {
         this.readTaskRegistry = readTaskRegistry;
     }
 
-    public void addNodeId(DataReadGroup readGroup, String nodeId) {
-        readTaskRegistry.getOrCreate(readGroup, nodeId);
+    public void addDataPoint(DataPointParams dataPointParams) {
+        readTaskRegistry.getOrCreate(dataPointParams);
     }
 
-    public void removeNodeId(DataReadGroup readGroup, String nodeId) {
-        ReadTask readTask = readTaskRegistry.get(readGroup);
+    public void removeDataPoint(DataPointParams dataPointParams) {
+        ReadTask readTask = readTaskRegistry.get(dataPointParams.getReadGroup());
         if (readTask != null) {
-            readTask.removeNodeId(nodeId);
-            if (readTask.getNodeIds().isEmpty()) {
+            readTask.removeDataPoint(dataPointParams);
+            if (readTask.geDataPointParams().isEmpty()) {
                 readTask.stop();
-                readTaskRegistry.remove(readGroup);
-                logger.info("Removed ReadTask for group: {}", readGroup);
+                readTaskRegistry.remove(dataPointParams.getReadGroup());
+                logger.info("Removed ReadTask for group: {}", dataPointParams.getReadGroup());
             }
         }
     }
 
     @Override
-    public void read() {
+    public void start() {
         for (ReadTask readTask : readTaskRegistry.values()) {
             readTask.start();
         }
