@@ -6,9 +6,9 @@ import java.util.List;
 import java.util.Map;
 
 import com.opcua_arrow.batch_builder.IBufferBuilder;
-import com.opcua_arrow.connector.ISend;
-import com.opcua_arrow.data_point.DataWriteGroup;
-import com.opcua_arrow.data_point.TSValue;
+import com.opcua_arrow.data.BufferPackage;
+import com.opcua_arrow.data.DataWriteGroup;
+import com.opcua_arrow.data.TSValue;
 import com.opcua_arrow.maps.BufferRegistry;
 import com.opcua_arrow.queues.IQueue;
 
@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory;
 public class LoopWriter implements IWriter {
     private static final Logger logger = LoggerFactory.getLogger(LoopWriter.class);
     private final IQueue<List<TSValue>> source;
-    private final ISend sender;
+    private final IQueue<BufferPackage> sink;
     private final BufferRegistry bufferRegistry;
 
     private final List<List<TSValue>> reusableDataList = new ArrayList<>();
@@ -27,10 +27,10 @@ public class LoopWriter implements IWriter {
     public LoopWriter(
             BufferRegistry bufferRegistry,
             IQueue<List<TSValue>> source,
-            ISend sender) {
+            IQueue<BufferPackage> sink) {
         this.bufferRegistry = bufferRegistry;
         this.source = source;
-        this.sender = sender;
+        this.sink = sink;
     }
 
     @Override
@@ -72,7 +72,12 @@ public class LoopWriter implements IWriter {
             batchBuffer.appendList(nodeData);
             byte[] batch = batchBuffer.flush();
             if (batch != null && batch.length > 0) {
-                sender.send(group, batch);
+                try {
+                    sink.push(new BufferPackage(batch, group));
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                ;
             }
         }
     }

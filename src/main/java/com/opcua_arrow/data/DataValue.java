@@ -1,4 +1,4 @@
-package com.opcua_arrow.data_point;
+package com.opcua_arrow.data;
 
 import com.opcua_arrow.opcua.IOPCUADataValue;
 

@@ -1,8 +1,8 @@
-package com.opcua_arrow.data_point;
+package com.opcua_arrow.data;
 
-import com.opcua_arrow.data_point.equals.NoFilter;
-import com.opcua_arrow.data_point.equals.RangeEqualValue;
-import com.opcua_arrow.data_point.equals.StrictEqualValue;
+import com.opcua_arrow.data.equals.NoFilter;
+import com.opcua_arrow.data.equals.RangeEqualValue;
+import com.opcua_arrow.data.equals.StrictEqualValue;
 import com.opcua_arrow.service.DataPointDTO;
 
 public class DataPointParams {

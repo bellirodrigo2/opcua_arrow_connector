@@ -1,4 +1,4 @@
-package com.opcua_arrow.data_point.equals;
+package com.opcua_arrow.data.equals;
 
 public class StrictEqualValue extends BaseEqualValue {
 

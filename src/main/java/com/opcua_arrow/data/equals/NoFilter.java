@@ -1,6 +1,6 @@
-package com.opcua_arrow.data_point.equals;
+package com.opcua_arrow.data.equals;
 
-import com.opcua_arrow.data_point.IDataPointEqual;
+import com.opcua_arrow.data.IDataPointEqual;
 
 public class NoFilter implements IDataPointEqual {
 

@@ -3,8 +3,8 @@ package com.opcua_arrow.opcua;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-import com.opcua_arrow.data_point.DataPointParams;
-import com.opcua_arrow.data_point.TSValue;
+import com.opcua_arrow.data.DataPointParams;
+import com.opcua_arrow.data.TSValue;
 
 public interface IOPCUAReader extends AutoCloseable {
 

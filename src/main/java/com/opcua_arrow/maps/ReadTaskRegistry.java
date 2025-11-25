@@ -5,8 +5,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import com.opcua_arrow.data_point.DataPointParams;
-import com.opcua_arrow.data_point.DataReadGroup;
+import com.opcua_arrow.data.DataPointParams;
+import com.opcua_arrow.data.DataReadGroup;
 import com.opcua_arrow.di.FactoryModule.ReadTaskFactory;
 import com.opcua_arrow.read.ReadTask;
 

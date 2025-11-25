@@ -4,7 +4,7 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.opcua_arrow.connector.ISend;
-import com.opcua_arrow.data_point.DataWriteGroup;
+import com.opcua_arrow.data.DataWriteGroup;
 import com.opcua_arrow.opcua.IOPCUAReader;
 
 /**

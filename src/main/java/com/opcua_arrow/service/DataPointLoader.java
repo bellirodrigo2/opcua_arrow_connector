@@ -10,7 +10,7 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.opcua_arrow.config.PostgreSQLConfig;
 import com.opcua_arrow.context.Context;
-import com.opcua_arrow.data_point.DataPointParams;
+import com.opcua_arrow.data.DataPointParams;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

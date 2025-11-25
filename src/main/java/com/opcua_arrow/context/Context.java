@@ -4,9 +4,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.google.inject.Inject;
-import com.opcua_arrow.data_point.DataPointParams;
-import com.opcua_arrow.data_point.DataReadGroup;
-import com.opcua_arrow.data_point.DataWriteGroup;
+import com.opcua_arrow.data.DataPointParams;
+import com.opcua_arrow.data.DataReadGroup;
+import com.opcua_arrow.data.DataWriteGroup;
 import com.opcua_arrow.maps.BufferRegistry;
 import com.opcua_arrow.maps.ReadTaskRegistry;
 import com.opcua_arrow.maps.RunningState;

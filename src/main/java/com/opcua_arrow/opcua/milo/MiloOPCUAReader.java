@@ -7,9 +7,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import com.opcua_arrow.data_point.DataPointParams;
-import com.opcua_arrow.data_point.TSValue;
-import com.opcua_arrow.data_point.TSValueFactory;
+import com.opcua_arrow.data.DataPointParams;
+import com.opcua_arrow.data.TSValue;
+import com.opcua_arrow.data.TSValueFactory;
 import com.opcua_arrow.opcua.IOPCUAConnection;
 import com.opcua_arrow.opcua.IOPCUAReader;
 import com.opcua_arrow.retry.IRetryPolicy;

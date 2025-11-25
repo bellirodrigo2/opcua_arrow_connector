@@ -1,6 +1,6 @@
 package com.opcua_arrow.read;
 
-import com.opcua_arrow.data_point.DataPointParams;
+import com.opcua_arrow.data.DataPointParams;
 
 public interface IReader {
 

@@ -8,7 +8,7 @@ import java.util.stream.Collectors;
 import java.util.zip.GZIPOutputStream;
 
 import com.opcua_arrow.batch_builder.IBufferBuilder;
-import com.opcua_arrow.data_point.TSValue;
+import com.opcua_arrow.data.TSValue;
 
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;

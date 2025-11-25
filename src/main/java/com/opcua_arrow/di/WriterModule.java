@@ -5,8 +5,8 @@ import java.util.List;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
-import com.opcua_arrow.connector.ISend;
-import com.opcua_arrow.data_point.TSValue;
+import com.opcua_arrow.data.BufferPackage;
+import com.opcua_arrow.data.TSValue;
 import com.opcua_arrow.maps.BufferRegistry;
 import com.opcua_arrow.queues.IQueue;
 import com.opcua_arrow.writer.IWriter;
@@ -24,7 +24,7 @@ public class WriterModule extends AbstractModule {
     public LoopWriter provideQueueWriter(
             BufferRegistry bufferRegistry,
             IQueue<List<TSValue>> source,
-            ISend sender) {
-        return new LoopWriter(bufferRegistry, source, sender);
+            IQueue<BufferPackage> sink) {
+        return new LoopWriter(bufferRegistry, source, sink);
     }
 }

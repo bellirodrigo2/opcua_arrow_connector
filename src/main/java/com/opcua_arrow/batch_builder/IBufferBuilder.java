@@ -2,7 +2,7 @@ package com.opcua_arrow.batch_builder;
 
 import java.util.List;
 
-import com.opcua_arrow.data_point.TSValue;
+import com.opcua_arrow.data.TSValue;
 
 public interface IBufferBuilder extends AutoCloseable {
 

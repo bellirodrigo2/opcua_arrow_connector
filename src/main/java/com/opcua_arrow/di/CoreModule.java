@@ -8,8 +8,9 @@ import com.google.inject.AbstractModule;
 import com.google.inject.TypeLiteral;
 import com.opcua_arrow.config.ConfigProvider;
 import com.opcua_arrow.config.InfraConfig;
-import com.opcua_arrow.data_point.DataPointParams;
-import com.opcua_arrow.data_point.TSValue;
+import com.opcua_arrow.data.BufferPackage;
+import com.opcua_arrow.data.DataPointParams;
+import com.opcua_arrow.data.TSValue;
 import com.opcua_arrow.queues.IQueue;
 import com.opcua_arrow.queues.QueueWrapper;
 
@@ -31,6 +32,9 @@ public class CoreModule extends AbstractModule {
         int timeoutMs = infraConfig.getQueueTimeoutMs();
 
         bind(new TypeLiteral<IQueue<List<TSValue>>>() {
+        }).toInstance(new QueueWrapper<>(capacity, timeoutMs));
+
+        bind(new TypeLiteral<IQueue<BufferPackage>>() {
         }).toInstance(new QueueWrapper<>(capacity, timeoutMs));
     }
 }

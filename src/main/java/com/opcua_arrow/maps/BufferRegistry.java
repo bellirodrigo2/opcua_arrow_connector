@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.opcua_arrow.batch_builder.IBufferBuilder;
-import com.opcua_arrow.data_point.DataWriteGroup;
+import com.opcua_arrow.data.DataWriteGroup;
 import com.opcua_arrow.di.FactoryModule.BatchBufferFactory;
 
 /**

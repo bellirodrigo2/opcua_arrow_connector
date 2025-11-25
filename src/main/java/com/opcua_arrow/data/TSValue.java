@@ -1,4 +1,4 @@
-package com.opcua_arrow.data_point;
+package com.opcua_arrow.data;
 
 public class TSValue {
     public final int id;

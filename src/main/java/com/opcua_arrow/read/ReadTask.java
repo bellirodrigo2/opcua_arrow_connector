@@ -7,8 +7,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-import com.opcua_arrow.data_point.DataPointParams;
-import com.opcua_arrow.data_point.TSValue;
+import com.opcua_arrow.data.DataPointParams;
+import com.opcua_arrow.data.TSValue;
 import com.opcua_arrow.opcua.IOPCUAReader;
 import com.opcua_arrow.queues.IQueue;
 
