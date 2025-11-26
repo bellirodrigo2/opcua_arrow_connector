@@ -5,5 +5,6 @@ public enum EDataType {
     STRING,
     NUMERIC,
     NUMERIC_ARRAY,
-    BOOLEAN_ARRAY
+    BOOLEAN_ARRAY,
+    EVENTS
 }

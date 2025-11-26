@@ -65,6 +65,9 @@ public class DataPoint {
             Integer pointId = config.pointId;
             EDataType dataType = getDataType(config.valueType);
             EReadMode readMode = EReadMode.valueOf(config.readType.toUpperCase());
+            if (dataType == EDataType.EVENTS && readMode == EReadMode.EVENTS) {
+                throw new IllegalArgumentException("DataPoint cannot have EVENTS data type and EVENTS read mode");
+            }
             IDataPointEqual equals = config.hasFilter ? createEquals(config.filterRange, config.filterIntervalSeconds,
                     isNumeric(dataType)) : new NoFilter();
             DataWriteGroup group = createDataWriteGroup(dataType, config.minRange,

@@ -78,6 +78,8 @@ public class FactoryModule extends AbstractModule {
                     return new ReadTask(opcuaReaderProvider.get(), intervalSeconds, queue);
                 case EReadMode.SUBSCRIBE:
                     return new SubscribeTask(opcuaSubscriberProvider.get(), readGroup, queue);
+                case EReadMode.EVENTS:
+                    return new SubscribeTask(opcuaSubscriberProvider.get(), readGroup, queue);
                 default:
                     break;
             }
