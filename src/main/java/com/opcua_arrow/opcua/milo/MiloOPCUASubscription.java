@@ -12,9 +12,9 @@ import java.util.stream.Collectors;
 
 import com.opcua_arrow.data.DataPoint;
 import com.opcua_arrow.data.TSValue;
+import com.opcua_arrow.opcua.IOPCUAConnection;
 import com.opcua_arrow.opcua.IOPCUASubscriber;
 
-import org.eclipse.milo.opcua.sdk.client.OpcUaClient;
 import org.eclipse.milo.opcua.sdk.client.api.subscriptions.UaMonitoredItem;
 import org.eclipse.milo.opcua.sdk.client.api.subscriptions.UaSubscription;
 import org.eclipse.milo.opcua.stack.core.AttributeId;
@@ -22,10 +22,11 @@ import org.eclipse.milo.opcua.stack.core.types.builtin.DataValue;
 import org.eclipse.milo.opcua.stack.core.types.builtin.DateTime;
 import org.eclipse.milo.opcua.stack.core.types.builtin.NodeId;
 import org.eclipse.milo.opcua.stack.core.types.builtin.QualifiedName;
-import org.eclipse.milo.opcua.stack.core.types.builtin.StatusCode;
+import org.eclipse.milo.opcua.stack.core.types.builtin.Variant;
 import org.eclipse.milo.opcua.stack.core.types.builtin.unsigned.UInteger;
 import org.eclipse.milo.opcua.stack.core.types.enumerated.MonitoringMode;
 import org.eclipse.milo.opcua.stack.core.types.enumerated.TimestampsToReturn;
+import org.eclipse.milo.opcua.stack.core.types.structured.EventFieldList;
 import org.eclipse.milo.opcua.stack.core.types.structured.MonitoredItemCreateRequest;
 import org.eclipse.milo.opcua.stack.core.types.structured.MonitoringParameters;
 import org.eclipse.milo.opcua.stack.core.types.structured.ReadValueId;
@@ -37,13 +38,16 @@ public class MiloOPCUASubscription implements IOPCUASubscriber {
     private static final Logger logger = LoggerFactory.getLogger(MiloOPCUASubscription.class);
     private Map<Double, UaSubscription> subscriptionMap = new ConcurrentHashMap<>();
     private Map<String, DataPoint> nodeIdToPointIdMap = new ConcurrentHashMap<>();
-    private OpcUaClient client;
+    private IOPCUAConnection connection;
     private final TSValueFactory tsValueFactory;
+    private final TSValueAlarmFactory alarmTsValueFactory;
     private final int queueSize;
 
-    public MiloOPCUASubscription(OpcUaClient client, TSValueFactory tsValueFactory, int queueSize) {
-        this.client = client;
+    public MiloOPCUASubscription(IOPCUAConnection connection, TSValueFactory tsValueFactory,
+            TSValueAlarmFactory alarmTsValueFactory, int queueSize) {
+        this.connection = connection;
         this.tsValueFactory = tsValueFactory;
+        this.alarmTsValueFactory = alarmTsValueFactory;
         this.queueSize = queueSize;
     }
 
@@ -83,14 +87,14 @@ public class MiloOPCUASubscription implements IOPCUASubscriber {
             requests.add(request);
         }
 
-        // Create all monitored items at once
-        UaSubscription.ItemCreationCallback onItemCreated = (item, id) -> item
-                .setValueConsumer(this::onSubscriptionValue);
+        // UaSubscription.ItemCreationCallback onItemCreated = (item, id) -> item
+        // .setValueConsumer(this::onSubscriptionValue);
         try {
             List<UaMonitoredItem> items = subscription.createMonitoredItems(
                     TimestampsToReturn.Both,
                     requests,
-                    onItemCreated).get();
+                    // onItemCreated
+                    null).get();
 
             // Check creation status
             for (UaMonitoredItem item : items) {
@@ -119,11 +123,11 @@ public class MiloOPCUASubscription implements IOPCUASubscriber {
                 .filter(item -> item.getReadValueId().getNodeId().equals(NodeId.parse(nodeId)))
                 .collect(Collectors.toList());
 
-        nodeIdToPointIdMap.remove(nodeId);
-
         if (!itemsToDelete.isEmpty()) {
             try {
                 subscription.deleteMonitoredItems(itemsToDelete).get();
+                nodeIdToPointIdMap.remove(nodeId);
+
             } catch (Exception e) {
                 logger.error("Error deleting monitored items: " + e.getMessage());
             }
@@ -138,7 +142,7 @@ public class MiloOPCUASubscription implements IOPCUASubscriber {
 
         UaSubscription subscription = subscriptionMap.computeIfAbsent(interval, i -> {
             try {
-                UaSubscription newSubscription = client.getSubscriptionManager()
+                UaSubscription newSubscription = connection.getClient().getSubscriptionManager()
                         .createSubscription(i)
                         .get();
 
@@ -155,6 +159,11 @@ public class MiloOPCUASubscription implements IOPCUASubscriber {
                             for (int i = 0; i < monitoredItems.size(); i++) {
                                 DataPoint dp = nodeIdToPointIdMap
                                         .get(monitoredItems.get(i).getReadValueId().getNodeId().toString());
+                                if (dp == null) {
+                                    logger.debug("Skipping data change for unknown nodeId: " +
+                                            monitoredItems.get(i).getReadValueId().getNodeId().toString());
+                                    continue;
+                                }
                                 TSValue tsValue = tsValueFactory.createTSValue(dp.getPointId(), dataValues.get(i),
                                         dp.getWriteGroup());
                                 if (tsValue.isConsistent() && dp.getEquals().isEqual(tsValue.value, tsValue.isGood)) {
@@ -170,10 +179,59 @@ public class MiloOPCUASubscription implements IOPCUASubscriber {
                     }
 
                     @Override
-                    public void onStatusChangedNotification(UaSubscription subscription, StatusCode status) {
-                        logger.info("Subscription " + subscription.getSubscriptionId() +
-                                " status changed: " + status);
+                    public void onEventNotification(
+                            UaSubscription sub,
+                            List<UaMonitoredItem> monitoredItems,
+                            List<Variant[]> eventFieldLists,
+                            DateTime publishTime) {
+
+                        try {
+                            for (int i = 0; i < monitoredItems.size(); i++) {
+
+                                DataPoint dp = nodeIdToPointIdMap
+                                        .get(monitoredItems.get(i).getReadValueId().getNodeId().toString());
+                                if (dp == null) {
+                                    logger.debug("Skipping event for unknown nodeId: " +
+                                            monitoredItems.get(i).getReadValueId().getNodeId().toString());
+                                    continue;
+                                }
+                                Variant[] eventFields = eventFieldLists.get(i);
+                                List<TSValue> alarmValues = new ArrayList<>();
+
+                                for (Variant variant : eventFields) {
+                                    if (variant.getValue() instanceof EventFieldList) {
+                                        EventFieldList eventFieldList = (EventFieldList) variant.getValue();
+                                        Variant[] fields = eventFieldList.getEventFields();
+
+                                        // Create TSValue from alarm data
+                                        TSValue tsValue = alarmTsValueFactory.createTSValue(
+                                                dp.getPointId(),
+                                                fields,
+                                                dp.getWriteGroup());
+
+                                        if (tsValue.isConsistent()
+                                                && dp.getEquals().isEqual(tsValue.value, tsValue.isGood)) {
+                                            alarmValues.add(tsValue);
+                                        }
+                                    }
+                                }
+
+                                if (!alarmValues.isEmpty()) {
+                                    batchHandler.accept(alarmValues);
+                                }
+                            }
+                            logger.debug("Received {} alarm events at {}", eventFieldLists.size(), publishTime);
+                        } catch (Exception e) {
+                            logger.error("Error processing alarm events: " + e.getMessage());
+                        }
                     }
+
+                    // @Override
+                    // public void onStatusChangedNotification(UaSubscription subscription,
+                    // StatusCode status) {
+                    // logger.info("Subscription " + subscription.getSubscriptionId() +
+                    // " status changed: " + status);
+                    // }
                 });
                 return newSubscription;
             } catch (Exception e) {
@@ -182,15 +240,16 @@ public class MiloOPCUASubscription implements IOPCUASubscriber {
         });
 
         return subscription;
+
     }
 
-    // Individual item value change callback
-    private void onSubscriptionValue(UaMonitoredItem item, DataValue value) {
-        logger.debug("Value changed for item: " + item.getReadValueId().getNodeId() +
-                " New Value: " + value.getValue());
-        // This is called for individual item processing if needed
-        // Usually overridden by custom value consumers
-    }
+    // // Individual item value change callback
+    // private void onSubscriptionValue(UaMonitoredItem item, DataValue value) {
+    // logger.debug("Value changed for item: " + item.getReadValueId().getNodeId() +
+    // " New Value: " + value.getValue());
+    // // This is called for individual item processing if needed
+    // // Usually overridden by custom value consumers
+    // }
 
     @Override
     public void closeSubscription(double interval) {
@@ -200,7 +259,7 @@ public class MiloOPCUASubscription implements IOPCUASubscriber {
         }
         try {
             UInteger subscriptionId = subscription.getSubscriptionId();
-            client.getSubscriptionManager().deleteSubscription(subscriptionId).get();
+            connection.getClient().getSubscriptionManager().deleteSubscription(subscriptionId).get();
         } catch (Exception e) {
             logger.error("Error closing subscription: " + e.getMessage());
         }

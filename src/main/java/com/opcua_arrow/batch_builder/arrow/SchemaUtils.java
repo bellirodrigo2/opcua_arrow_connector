@@ -7,6 +7,7 @@ import org.apache.arrow.vector.types.FloatingPointPrecision;
 import org.apache.arrow.vector.types.TimeUnit;
 import org.apache.arrow.vector.types.pojo.ArrowType;
 import org.apache.arrow.vector.types.pojo.Field;
+import org.apache.arrow.vector.types.pojo.FieldType;
 import org.apache.arrow.vector.types.pojo.Schema;
 
 /**
@@ -18,13 +19,12 @@ public class SchemaUtils {
      * Creates an Arrow schema for OPC-UA data.
      *
      * @param valueType The Java class of the value type
-     * @param idLookup  Optional ID lookup map for converting node IDs to integers
      * @return The Arrow schema
      */
     public static Schema createSchema(Class<?> valueType) {
         List<Field> fields = new ArrayList<>();
 
-        // Add pointid field (either string or int32 based on idLookup)
+        // Add pointid field
         fields.add(Field.notNullable("pointid", new ArrowType.Int(32, true)));
 
         // Add timestamp field (nanosecond precision with UTC timezone)
@@ -32,8 +32,8 @@ public class SchemaUtils {
                 new ArrowType.Timestamp(TimeUnit.NANOSECOND, "UTC")));
 
         // Add value field based on the value type
-        ArrowType arrowValueType = getArrowType(valueType);
-        fields.add(Field.nullable("value", arrowValueType));
+        Field valueField = createValueField(valueType);
+        fields.add(valueField);
 
         // Add statuscode field
         fields.add(Field.notNullable("statuscode", ArrowType.Bool.INSTANCE));
@@ -42,12 +42,35 @@ public class SchemaUtils {
     }
 
     /**
-     * Maps Java types to Arrow types.
-     *
-     * @param javaType The Java class
-     * @return The corresponding Arrow type
+     * Creates the value field based on the Java type
      */
-    public static ArrowType getArrowType(Class<?> javaType) {
+    private static Field createValueField(Class<?> javaType) {
+        if (javaType.isArray()) {
+            // Para arrays, criar um ListVector com o tipo de elemento apropriado
+            Class<?> componentType = javaType.getComponentType();
+            ArrowType elementType = getScalarArrowType(componentType);
+
+            // Campo do elemento dentro da lista
+            Field elementField = Field.nullable("element", elementType);
+
+            // Campo da lista em si - usando construtor com children
+            List<Field> children = new ArrayList<>();
+            children.add(elementField);
+
+            return new Field("value",
+                    new FieldType(true, new ArrowType.List(), null),
+                    children);
+        } else {
+            // Para tipos escalares, usar diretamente
+            ArrowType arrowType = getScalarArrowType(javaType);
+            return Field.nullable("value", arrowType);
+        }
+    }
+
+    /**
+     * Maps scalar Java types to Arrow types.
+     */
+    private static ArrowType getScalarArrowType(Class<?> javaType) {
         if (javaType == Double.class || javaType == double.class) {
             return new ArrowType.FloatingPoint(FloatingPointPrecision.DOUBLE);
         } else if (javaType == Float.class || javaType == float.class) {
@@ -63,5 +86,19 @@ public class SchemaUtils {
         } else {
             throw new IllegalArgumentException("Unsupported value type: " + javaType);
         }
+    }
+
+    /**
+     * Maps Java types to Arrow types (mantido para compatibilidade).
+     *
+     * @param javaType The Java class
+     * @return The corresponding Arrow type
+     */
+    @Deprecated
+    public static ArrowType getArrowType(Class<?> javaType) {
+        if (javaType.isArray()) {
+            return new ArrowType.List();
+        }
+        return getScalarArrowType(javaType);
     }
 }

@@ -11,6 +11,7 @@ import com.opcua_arrow.opcua.IOPCUASubscriber;
 import com.opcua_arrow.opcua.milo.MiloOPCUAConnection;
 import com.opcua_arrow.opcua.milo.MiloOPCUAReader;
 import com.opcua_arrow.opcua.milo.MiloOPCUASubscription;
+import com.opcua_arrow.opcua.milo.TSValueAlarmFactory;
 import com.opcua_arrow.opcua.milo.TSValueFactory;
 import com.opcua_arrow.retry.IRetryPolicy;
 import com.opcua_arrow.retry.resilience4j.Resilience4jRetryPolicy;
@@ -38,6 +39,11 @@ public class OPCUAModule extends AbstractModule {
     }
 
     @Provides
+    public TSValueFactory provideTSValueAlarmFactory() {
+        return new TSValueFactory();
+    }
+
+    @Provides
     public IOPCUAConnection provideOPCUAConnection(
             OPCUAClientConfig config,
             IRetryPolicy retryPolicy) {
@@ -57,11 +63,13 @@ public class OPCUAModule extends AbstractModule {
     public IOPCUASubscriber provideOPCUASubscriber(
             IOPCUAConnection connection,
             TSValueFactory tsValueFactory,
+            TSValueAlarmFactory alarmTsValueFactory,
             OPCUAClientConfig config) {
         int queueSize = config.getSubscriberQueueSize();
         return new MiloOPCUASubscription(
-                connection.getClient(),
+                connection,
                 tsValueFactory,
+                alarmTsValueFactory,
                 queueSize);
     }
 }

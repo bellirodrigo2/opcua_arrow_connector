@@ -30,7 +30,9 @@ CREATE TYPE DataType AS ENUM (
     'UInt64',
     'Float',
     'Double',
-    'String'
+    'String',
+    'ArrayBoolean',
+    'ArrayNumeric'
 );
 
 

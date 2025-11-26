@@ -69,13 +69,13 @@ public class DataPoint {
                     isNumeric(dataType)) : new NoFilter();
             DataWriteGroup group = createDataWriteGroup(dataType, config.minRange,
                     config.maxRange);
-            DataReadGroup interval = createDataReadGroup(dataType, readMode, config.interval_seconds);
+            DataReadGroup interval = createDataReadGroup(readMode, config.interval_seconds);
 
             return new DataPoint(nodeId, pointId, dataType, equals, group, interval);
         }
 
-        static private DataReadGroup createDataReadGroup(EDataType dataType, EReadMode readMode, long interval) {
-            return new DataReadGroup(dataType, readMode, interval);
+        static private DataReadGroup createDataReadGroup(EReadMode readMode, long interval) {
+            return new DataReadGroup(readMode, interval);
         }
 
         static private IDataPointEqual createEquals(double filterRange, long filterIntervalSeconds, boolean isNumeric) {
@@ -100,9 +100,10 @@ public class DataPoint {
                 case "boolean" -> EDataType.BOOLEAN;
                 case "string" -> EDataType.STRING;
                 case "int16", "uint16", "int32", "uint32", "int64", "uint64", "float", "double" -> EDataType.NUMERIC;
+                case "arrayboolean" -> EDataType.BOOLEAN_ARRAY;
+                case "arraynumeric" -> EDataType.NUMERIC_ARRAY;
                 default -> throw new IllegalArgumentException("Unsupported value type: " + valueType);
             };
         }
-
     }
 }

@@ -10,7 +10,9 @@ import com.google.inject.Singleton;
 import com.opcua_arrow.batch_builder.IBufferBuilder;
 import com.opcua_arrow.batch_builder.arrow.AcumBatchArrowBuilder;
 import com.opcua_arrow.batch_builder.arrow.IValueColumn;
+import com.opcua_arrow.batch_builder.arrow.columns.BooleanArrayValueColumn;
 import com.opcua_arrow.batch_builder.arrow.columns.BooleanValueColumn;
+import com.opcua_arrow.batch_builder.arrow.columns.DoubleArrayValueColumn;
 import com.opcua_arrow.batch_builder.arrow.columns.DoubleValueColumn;
 import com.opcua_arrow.batch_builder.arrow.columns.StringValueColumn;
 import com.opcua_arrow.config.ConfigProvider;
@@ -110,6 +112,10 @@ public class FactoryModule extends AbstractModule {
                     return new BooleanValueColumn();
                 case EDataType.STRING:
                     return new StringValueColumn();
+                case EDataType.BOOLEAN_ARRAY:
+                    return new BooleanArrayValueColumn();
+                case EDataType.NUMERIC_ARRAY:
+                    return new DoubleArrayValueColumn();
                 default:
                     break;
             }
