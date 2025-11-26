@@ -20,14 +20,12 @@ import com.opcua_arrow.data.DataWriteGroup;
 import com.opcua_arrow.data.EDataType;
 import com.opcua_arrow.data.EReadMode;
 import com.opcua_arrow.data.TSValue;
-import com.opcua_arrow.opcua.IOPCUAConnection;
+import com.opcua_arrow.loop.IReader;
 import com.opcua_arrow.opcua.IOPCUAReader;
-import com.opcua_arrow.opcua.milo.MiloOPCUASubscriptionReader;
-import com.opcua_arrow.opcua.milo.TSValueFactory;
+import com.opcua_arrow.opcua.IOPCUASubscriber;
 import com.opcua_arrow.queues.IQueue;
-import com.opcua_arrow.read.IReader;
 import com.opcua_arrow.read.ReadTask;
-import com.opcua_arrow.retry.IRetryPolicy;
+import com.opcua_arrow.read.SubscribeTask;
 
 /**
  * Modulo para factories que criam objetos dinamicos
@@ -44,11 +42,9 @@ public class FactoryModule extends AbstractModule {
     public ReadTaskFactory provideReadTaskFactory(
             IQueue<List<TSValue>> queue,
             Provider<IOPCUAReader> opcuaReaderProvider,
-            Provider<IOPCUAConnection> connectionProvider,
-            Provider<IRetryPolicy> retryPolicyProvider,
-            Provider<TSValueFactory> tsValueFactoryProvider) {
-        return new ReadTaskFactory(queue, opcuaReaderProvider, connectionProvider,
-                retryPolicyProvider, tsValueFactoryProvider);
+            Provider<IOPCUASubscriber> opcuaSubscriberProvider) {
+
+        return new ReadTaskFactory(queue, opcuaReaderProvider, opcuaSubscriberProvider);
     }
 
     @Provides
@@ -60,22 +56,16 @@ public class FactoryModule extends AbstractModule {
     public static class ReadTaskFactory {
         private final IQueue<List<TSValue>> queue;
         private final Provider<IOPCUAReader> opcuaReaderProvider;
-        private final Provider<IOPCUAConnection> connectionProvider;
-        private final Provider<IRetryPolicy> retryPolicyProvider;
-        private final Provider<TSValueFactory> tsValueFactoryProvider;
+        private final Provider<IOPCUASubscriber> opcuaSubscriberProvider;
 
         @Inject
         public ReadTaskFactory(
                 IQueue<List<TSValue>> queue,
                 Provider<IOPCUAReader> opcuaReaderProvider,
-                Provider<IOPCUAConnection> connectionProvider,
-                Provider<IRetryPolicy> retryPolicyProvider,
-                Provider<TSValueFactory> tsValueFactoryProvider) {
+                Provider<IOPCUASubscriber> opcuaSubscriberProvider) {
             this.queue = queue;
             this.opcuaReaderProvider = opcuaReaderProvider;
-            this.connectionProvider = connectionProvider;
-            this.retryPolicyProvider = retryPolicyProvider;
-            this.tsValueFactoryProvider = tsValueFactoryProvider;
+            this.opcuaSubscriberProvider = opcuaSubscriberProvider;
         }
 
         public IReader createReader(DataReadGroup readGroup) {
@@ -85,12 +75,7 @@ public class FactoryModule extends AbstractModule {
                 case EReadMode.READ:
                     return new ReadTask(opcuaReaderProvider.get(), intervalSeconds, queue);
                 case EReadMode.SUBSCRIBE:
-                    return new MiloOPCUASubscriptionReader(
-                            connectionProvider.get(),
-                            retryPolicyProvider.get(),
-                            tsValueFactoryProvider.get(),
-                            queue,
-                            intervalSeconds * 1000); // convert seconds to milliseconds
+                    return new SubscribeTask(opcuaSubscriberProvider.get(), readGroup, queue);
                 default:
                     break;
             }

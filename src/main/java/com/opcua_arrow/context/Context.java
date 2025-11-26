@@ -4,36 +4,29 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import com.opcua_arrow.data.DataPoint;
 import com.opcua_arrow.data.DataReadGroup;
 import com.opcua_arrow.data.DataWriteGroup;
-import com.opcua_arrow.read.IReader;
-import com.opcua_arrow.registry.BufferRegistry;
-import com.opcua_arrow.registry.ReadTaskRegistry;
-import com.opcua_arrow.registry.RunningState;
-import com.opcua_arrow.writer.IWriter;
+import com.opcua_arrow.loop.ILoop;
 
 public class Context {
 
     private final Map<String, DataPoint> paramsMap;
-    private final IReader reader;
-    private final IWriter writer;
+    private final ILoop reader;
+    private final ILoop writer;
 
-    private final ReadTaskRegistry readTaskRegistry;
-    private final BufferRegistry bufferRegistry;
     private final RunningState runningState;
 
     @Inject
     public Context(Map<String, DataPoint> paramsMap,
-            IReader reader, IWriter writer,
-            ReadTaskRegistry readTaskRegistry, BufferRegistry bufferRegistry,
+            @Named("reader") ILoop reader,
+            @Named("writer") ILoop writer,
             RunningState runningState) {
 
         this.paramsMap = ensureConcurrent(paramsMap);
         this.reader = reader;
         this.writer = writer;
-        this.readTaskRegistry = readTaskRegistry;
-        this.bufferRegistry = bufferRegistry;
         this.runningState = runningState;
     }
 
@@ -52,16 +45,18 @@ public class Context {
 
         if (existing == null) {
             paramsMap.put(nodeId, params);
-            bufferRegistry.getOrCreate(newWriteGroup);
-            readTaskRegistry.getOrCreate(params);
+            writer.addDataPoint(params);
+            reader.addDataPoint(params);
             return;
         }
 
         DataWriteGroup existingWriteGroup = existing.getWriteGroup();
         if (!existingWriteGroup.equals(newWriteGroup)) {
-            if (!bufferRegistry.containsKey(existingWriteGroup)) {
-                bufferRegistry.getOrCreate(newWriteGroup);
+            writer.addDataPoint(params);
+            if (DataWriteGrouCount(existingWriteGroup) == 1) {
+                writer.removeDataPoint(existing);
             }
+
         }
 
         DataReadGroup existingReadGroup = existing.getReadGroup();
@@ -76,9 +71,8 @@ public class Context {
         if (existing != null) {
             reader.removeDataPoint(existing);
             DataWriteGroup writeGroup = existing.getWriteGroup();
-            if (!hasDataWriteGroup(writeGroup)) {
-                bufferRegistry.remove(writeGroup);
-            }
+            if (!hasDataWriteGroup(writeGroup))
+                writer.removeDataPoint(existing);
         }
     }
 
@@ -91,8 +85,18 @@ public class Context {
         return false;
     }
 
+    private int DataWriteGrouCount(DataWriteGroup writeGroup) {
+        int count = 0;
+        for (DataPoint params : paramsMap.values()) {
+            if (params.getWriteGroup().equals(writeGroup)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
     public void start() {
-        writer.write();
+        writer.start();
         reader.start();
         runningState.setRunning(true);
     }

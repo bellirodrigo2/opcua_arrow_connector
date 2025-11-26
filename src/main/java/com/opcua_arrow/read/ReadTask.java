@@ -9,6 +9,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.opcua_arrow.data.DataPoint;
 import com.opcua_arrow.data.TSValue;
+import com.opcua_arrow.loop.IReader;
 import com.opcua_arrow.opcua.IOPCUAReader;
 import com.opcua_arrow.queues.IQueue;
 
@@ -33,8 +34,8 @@ public class ReadTask implements IReader {
     }
 
     @Override
-    public List<DataPoint> getDataPoint() {
-        return opcuaReader.getDataPoints();
+    public boolean isEmpty() {
+        return opcuaReader.getDataPoints().isEmpty();
     }
 
     @Override

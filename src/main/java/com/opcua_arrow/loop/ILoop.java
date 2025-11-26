@@ -1,12 +1,8 @@
-package com.opcua_arrow.read;
-
-import java.util.List;
+package com.opcua_arrow.loop;
 
 import com.opcua_arrow.data.DataPoint;
 
-public interface IReader {
-
-    List<DataPoint> getDataPoint();
+public interface ILoop {
 
     void addDataPoint(DataPoint DataPoint);
 
@@ -15,5 +11,4 @@ public interface IReader {
     void start();
 
     void stop();
-
 }

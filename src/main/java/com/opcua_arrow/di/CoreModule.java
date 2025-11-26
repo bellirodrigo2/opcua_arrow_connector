@@ -36,5 +36,6 @@ public class CoreModule extends AbstractModule {
 
         bind(new TypeLiteral<IQueue<BufferPackage>>() {
         }).toInstance(new QueueWrapper<>(capacity, timeoutMs));
+
     }
 }
