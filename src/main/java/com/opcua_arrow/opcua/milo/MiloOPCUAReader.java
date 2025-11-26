@@ -11,7 +11,7 @@ import com.opcua_arrow.data.DataPoint;
 import com.opcua_arrow.data.TSValue;
 import com.opcua_arrow.opcua.IOPCUAConnection;
 import com.opcua_arrow.opcua.IOPCUAReader;
-import com.opcua_arrow.retry.IRetryPolicy;
+import com.opcua_arrow.opcua.retry.IRetryPolicy;
 
 import org.eclipse.milo.opcua.sdk.client.OpcUaClient;
 import org.eclipse.milo.opcua.stack.core.AttributeId;

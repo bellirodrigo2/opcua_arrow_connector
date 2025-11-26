@@ -1,4 +1,4 @@
-package com.opcua_arrow.retry.resilience4j;
+package com.opcua_arrow.opcua.retry.resilience4j;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
@@ -9,7 +9,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 import com.opcua_arrow.config.RetryPolicyConfig;
-import com.opcua_arrow.retry.IRetryPolicy;
+import com.opcua_arrow.opcua.retry.IRetryPolicy;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

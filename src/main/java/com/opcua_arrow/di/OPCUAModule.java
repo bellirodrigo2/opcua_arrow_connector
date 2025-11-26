@@ -13,8 +13,8 @@ import com.opcua_arrow.opcua.milo.MiloOPCUAReader;
 import com.opcua_arrow.opcua.milo.MiloOPCUASubscription;
 import com.opcua_arrow.opcua.milo.TSValueAlarmFactory;
 import com.opcua_arrow.opcua.milo.TSValueFactory;
-import com.opcua_arrow.retry.IRetryPolicy;
-import com.opcua_arrow.retry.resilience4j.Resilience4jRetryPolicy;
+import com.opcua_arrow.opcua.retry.IRetryPolicy;
+import com.opcua_arrow.opcua.retry.resilience4j.Resilience4jRetryPolicy;
 
 public class OPCUAModule extends AbstractModule {
 

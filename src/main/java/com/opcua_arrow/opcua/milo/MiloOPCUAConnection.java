@@ -13,7 +13,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import com.opcua_arrow.config.OPCUAClientConfig;
 import com.opcua_arrow.opcua.IOPCUAConnection;
-import com.opcua_arrow.retry.IRetryPolicy;
+import com.opcua_arrow.opcua.retry.IRetryPolicy;
 
 import org.eclipse.milo.opcua.sdk.client.OpcUaClient;
 import org.eclipse.milo.opcua.sdk.client.SessionActivityListener;
