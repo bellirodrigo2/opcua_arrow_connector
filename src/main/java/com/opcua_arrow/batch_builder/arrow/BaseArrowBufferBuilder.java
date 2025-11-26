@@ -157,14 +157,14 @@ public class BaseArrowBufferBuilder implements IBufferBuilder {
         count++;
     }
 
-    @Override
+    // @Override
     public void pop() {
         if (count > 0) {
             count--;
         }
     }
 
-    @Override
+    // @Override
     public void reset() {
         count = 0;
         if (root != null) {
@@ -215,12 +215,12 @@ public class BaseArrowBufferBuilder implements IBufferBuilder {
         }
     }
 
-    @Override
+    // @Override
     public int size() {
         return count;
     }
 
-    @Override
+    // @Override
     public int capacity() {
         return capacity;
     }

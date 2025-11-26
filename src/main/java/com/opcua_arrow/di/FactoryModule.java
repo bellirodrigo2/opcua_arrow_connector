@@ -97,13 +97,19 @@ public class FactoryModule extends AbstractModule {
 
         public IBufferBuilder createBatchBuffer(DataWriteGroup group) {
             EDataType dataType = group.getDataType();
-            IValueColumn valueColumn = createValueColumn(dataType);
-            return new AcumBatchArrowBuilder(
-                    infraConfig.getInitialBufferBuilderCapacity(),
-                    infraConfig.isBufferCompressionEnabled(),
-                    valueColumn,
-                    infraConfig.getMinBufferFlushSize(),
-                    infraConfig.getMinFlushIntervalNanos());
+            if (dataType != EDataType.EVENTS) {
+                IValueColumn valueColumn = createValueColumn(dataType);
+                return new AcumBatchArrowBuilder(
+                        infraConfig.getInitialBufferBuilderCapacity(),
+                        infraConfig.isBufferCompressionEnabled(),
+                        valueColumn,
+                        infraConfig.getMinBufferFlushSize(),
+                        infraConfig.getMinFlushIntervalNanos());
+            } else {
+                // Implementar tratamento para eventos se necessario
+                throw new IllegalArgumentException("EVENTS data type not supported yet for batch buffer");
+            }
+
         }
 
         private IValueColumn createValueColumn(EDataType dataType) {
