@@ -7,6 +7,8 @@ import com.opcua_arrow.service.DataPointDTO;
 
 public class DataPoint {
 
+    private final String name;
+    private final String description;
     private final String nodeId;
     private final int pointId;
     private final EDataType dataType;
@@ -14,12 +16,16 @@ public class DataPoint {
     private final DataWriteGroup writeGroup;
     private final DataReadGroup readGroup;
 
-    public DataPoint(String nodeId,
+    public DataPoint(String name,
+            String description,
+            String nodeId,
             int pointId,
             EDataType dataType,
             IDataPointEqual equals,
             DataWriteGroup writeGroup,
             DataReadGroup readGroup) {
+        this.name = name;
+        this.description = description;
         this.nodeId = nodeId;
         this.pointId = pointId;
         this.dataType = dataType;
@@ -31,6 +37,14 @@ public class DataPoint {
 
     public static DataPoint fromConfig(DataPointDTO config) {
         return DataPointFactory.createDataPoint(config);
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getDescription() {
+        return description;
     }
 
     public EDataType getDataType() {
@@ -61,6 +75,8 @@ public class DataPoint {
 
         static public DataPoint createDataPoint(DataPointDTO config) {
 
+            String name = config.name;
+            String description = config.description;
             String nodeId = config.nodeId;
             Integer pointId = config.pointId;
             EDataType dataType = getDataType(config.valueType);
@@ -74,7 +90,7 @@ public class DataPoint {
                     config.maxRange);
             DataReadGroup interval = createDataReadGroup(readMode, config.interval_seconds);
 
-            return new DataPoint(nodeId, pointId, dataType, equals, group, interval);
+            return new DataPoint(name, description, nodeId, pointId, dataType, equals, group, interval);
         }
 
         static private DataReadGroup createDataReadGroup(EReadMode readMode, long interval) {

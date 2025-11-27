@@ -1,8 +1,12 @@
 package com.opcua_arrow.batch_builder;
 
+import java.util.List;
+
+import com.opcua_arrow.data.TSValue;
+
 public class JsonBufferBuilder implements IBufferBuilder {
     @Override
-    public void appendList(java.util.List<com.opcua_arrow.data.TSValue> dataValues) {
+    public void appendList(List<TSValue> dataValues) {
         // TODO Auto-generated method stub
 
     }

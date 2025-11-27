@@ -9,9 +9,8 @@ import java.util.stream.Collectors;
 
 import com.opcua_arrow.data.DataPoint;
 import com.opcua_arrow.data.TSValue;
-import com.opcua_arrow.opcua.IOPCUAConnection;
-import com.opcua_arrow.opcua.IOPCUAReader;
 import com.opcua_arrow.opcua.retry.IRetryPolicy;
+import com.opcua_arrow.read.IReader;
 
 import org.eclipse.milo.opcua.sdk.client.OpcUaClient;
 import org.eclipse.milo.opcua.stack.core.AttributeId;
@@ -25,11 +24,17 @@ import org.eclipse.milo.opcua.stack.core.types.structured.ReadValueId;
  * OPC-UA reader implementation using Eclipse Milo.
  * Lock-free & thread-safe snapshot design.
  */
-public class MiloOPCUAReader implements IOPCUAReader {
+public class MiloOPCUAReader implements IReader {
 
     private final IRetryPolicy retryPolicy;
-    private final IOPCUAConnection connection;
+    private final MiloOPCUAConnection connection;
     private final TSValueFactory tsValueFactory;
+
+    public MiloOPCUAReader(MiloOPCUAConnection connection, IRetryPolicy retryPolicy, TSValueFactory tsValueFactory) {
+        this.connection = connection;
+        this.retryPolicy = retryPolicy;
+        this.tsValueFactory = tsValueFactory;
+    }
 
     // ------------------------------------------------------------
     // Snapshot atomico e imutável
@@ -48,11 +53,6 @@ public class MiloOPCUAReader implements IOPCUAReader {
             new NodeSnapshot(List.of(), List.of()));
 
     // ------------------------------------------------------------
-    public MiloOPCUAReader(IOPCUAConnection connection, IRetryPolicy retryPolicy, TSValueFactory tsValueFactory) {
-        this.connection = connection;
-        this.retryPolicy = retryPolicy;
-        this.tsValueFactory = tsValueFactory;
-    }
 
     @Override
     public List<DataPoint> getDataPoints() {
@@ -144,7 +144,7 @@ public class MiloOPCUAReader implements IOPCUAReader {
             List<DataPoint> ids = snap.dataPoints;
             List<ReadValueId> rvids = snap.readValueIds;
 
-            return client.read(0, TimestampsToReturn.Both, rvids)
+            return client.readAsync(0.0, TimestampsToReturn.Both, rvids)
                     .thenApply(response -> {
                         DataValue[] results = response.getResults();
                         int n = results.length;
@@ -152,8 +152,7 @@ public class MiloOPCUAReader implements IOPCUAReader {
 
                         for (int i = 0; i < n; i++) {
                             DataPoint dp = ids.get(i);
-                            TSValue tsValue = tsValueFactory.createTSValue(dp.getPointId(), results[i],
-                                    dp.getWriteGroup());
+                            TSValue tsValue = tsValueFactory.createTSValue(dp, results[i]);
                             if (tsValue.isConsistent() && dp.getEquals().isEqual(tsValue.value, tsValue.isGood)) {
                                 values.add(tsValue);
                             }

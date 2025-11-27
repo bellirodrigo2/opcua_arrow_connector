@@ -22,10 +22,10 @@ import com.opcua_arrow.data.DataWriteGroup;
 import com.opcua_arrow.data.EDataType;
 import com.opcua_arrow.data.EReadMode;
 import com.opcua_arrow.data.TSValue;
-import com.opcua_arrow.loop.IReader;
-import com.opcua_arrow.opcua.IOPCUAReader;
-import com.opcua_arrow.opcua.IOPCUASubscriber;
+import com.opcua_arrow.loop.IReaderTask;
 import com.opcua_arrow.queues.IQueue;
+import com.opcua_arrow.read.IReader;
+import com.opcua_arrow.read.ISubscriber;
 import com.opcua_arrow.read.ReadTask;
 import com.opcua_arrow.read.SubscribeTask;
 
@@ -43,8 +43,8 @@ public class FactoryModule extends AbstractModule {
     @Singleton
     public ReadTaskFactory provideReadTaskFactory(
             IQueue<List<TSValue>> queue,
-            Provider<IOPCUAReader> opcuaReaderProvider,
-            Provider<IOPCUASubscriber> opcuaSubscriberProvider) {
+            Provider<IReader> opcuaReaderProvider,
+            Provider<ISubscriber> opcuaSubscriberProvider) {
 
         return new ReadTaskFactory(queue, opcuaReaderProvider, opcuaSubscriberProvider);
     }
@@ -57,20 +57,20 @@ public class FactoryModule extends AbstractModule {
 
     public static class ReadTaskFactory {
         private final IQueue<List<TSValue>> queue;
-        private final Provider<IOPCUAReader> opcuaReaderProvider;
-        private final Provider<IOPCUASubscriber> opcuaSubscriberProvider;
+        private final Provider<IReader> opcuaReaderProvider;
+        private final Provider<ISubscriber> opcuaSubscriberProvider;
 
         @Inject
         public ReadTaskFactory(
                 IQueue<List<TSValue>> queue,
-                Provider<IOPCUAReader> opcuaReaderProvider,
-                Provider<IOPCUASubscriber> opcuaSubscriberProvider) {
+                Provider<IReader> opcuaReaderProvider,
+                Provider<ISubscriber> opcuaSubscriberProvider) {
             this.queue = queue;
             this.opcuaReaderProvider = opcuaReaderProvider;
             this.opcuaSubscriberProvider = opcuaSubscriberProvider;
         }
 
-        public IReader createReader(DataReadGroup readGroup) {
+        public IReaderTask createReader(DataReadGroup readGroup) {
             Long intervalSeconds = readGroup.getInterval();
             EReadMode readMode = readGroup.getReadMode();
             switch (readMode) {

@@ -15,7 +15,7 @@ public class LoopReader implements ILoop {
 
     private static final Logger logger = LoggerFactory.getLogger(LoopReader.class);
     // private final ReadTaskRegistry readTaskRegistry;
-    private final ConcurrentHashMap<DataReadGroup, IReader> readerMap = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<DataReadGroup, IReaderTask> readerMap = new ConcurrentHashMap<>();
     private final ReadTaskFactory factory;
     private final RunningState runningState;
 
@@ -30,7 +30,7 @@ public class LoopReader implements ILoop {
     public void addDataPoint(DataPoint dataPoint) {
         boolean[] created = { false };
         DataReadGroup group = dataPoint.getReadGroup();
-        IReader reader = readerMap.computeIfAbsent(group, g -> {
+        IReaderTask reader = readerMap.computeIfAbsent(group, g -> {
             created[0] = true;
             return factory.createReader(group);
         });
@@ -44,7 +44,7 @@ public class LoopReader implements ILoop {
 
     @Override
     public void removeDataPoint(DataPoint DataPoint) {
-        IReader readTask = readerMap.get(DataPoint.getReadGroup());
+        IReaderTask readTask = readerMap.get(DataPoint.getReadGroup());
         if (readTask != null) {
             readTask.removeDataPoint(DataPoint);
             if (readTask.isEmpty()) {
@@ -57,14 +57,14 @@ public class LoopReader implements ILoop {
 
     @Override
     public void start() {
-        for (IReader readTask : readerMap.values()) {
+        for (IReaderTask readTask : readerMap.values()) {
             readTask.start();
         }
     }
 
     @Override
     public void stop() {
-        for (IReader readTask : readerMap.values()) {
+        for (IReaderTask readTask : readerMap.values()) {
             readTask.stop();
         }
     }

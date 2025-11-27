@@ -1,6 +1,6 @@
 package com.opcua_arrow.loop;
 
-public interface IReader extends ILoop {
+public interface IReaderTask extends ILoop {
 
     boolean isEmpty();
 

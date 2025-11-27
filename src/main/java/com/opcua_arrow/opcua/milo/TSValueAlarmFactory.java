@@ -1,15 +1,18 @@
 package com.opcua_arrow.opcua.milo;
 
-import com.opcua_arrow.data.DataWriteGroup;
+import java.util.Map;
+
+import com.opcua_arrow.data.DataPoint;
 import com.opcua_arrow.data.TSValue;
 
-import org.eclipse.milo.opcua.stack.core.types.builtin.Variant;
-
 public class TSValueAlarmFactory {
-    TSValue createTSValue(int pointId, Variant[] fields, DataWriteGroup writeGroup) {
+    static TSValue createTSValue(DataPoint dp, String json) {
         long timestamp = System.nanoTime();
+        Map<String, String> map = Map.of("name", dp.getName(), "description", dp.getDescription(), "nodeId",
+                dp.getNodeId(), "pointId", String.valueOf(dp.getPointId()), "content", json);
 
-        return new TSValue(pointId, timestamp, (Object) fields, true, writeGroup);
+        return new TSValue(dp.getPointId(), timestamp, (Object) map, true, dp.getWriteGroup());
 
     }
+
 }

@@ -12,28 +12,26 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import com.opcua_arrow.config.OPCUAClientConfig;
-import com.opcua_arrow.opcua.IOPCUAConnection;
 import com.opcua_arrow.opcua.retry.IRetryPolicy;
 
+import org.eclipse.milo.opcua.sdk.client.DiscoveryClient;
 import org.eclipse.milo.opcua.sdk.client.OpcUaClient;
+import org.eclipse.milo.opcua.sdk.client.OpcUaClientConfig;
 import org.eclipse.milo.opcua.sdk.client.SessionActivityListener;
-import org.eclipse.milo.opcua.sdk.client.api.config.OpcUaClientConfig;
-import org.eclipse.milo.opcua.sdk.client.api.identity.AnonymousProvider;
-import org.eclipse.milo.opcua.sdk.client.api.identity.IdentityProvider;
-import org.eclipse.milo.opcua.sdk.client.api.identity.UsernameProvider;
-import org.eclipse.milo.opcua.stack.client.DiscoveryClient;
-import org.eclipse.milo.opcua.stack.core.Identifiers;
-import org.eclipse.milo.opcua.stack.core.types.enumerated.TimestampsToReturn;
+import org.eclipse.milo.opcua.sdk.client.UaSession;
+import org.eclipse.milo.opcua.sdk.client.identity.AnonymousProvider;
+import org.eclipse.milo.opcua.sdk.client.identity.IdentityProvider;
+import org.eclipse.milo.opcua.sdk.client.identity.UsernameProvider;
 import org.eclipse.milo.opcua.stack.core.types.structured.EndpointDescription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Thread-safe OPC-UA connection implementation using Eclipse Milo with
+ * Thread-safe OPC-UA connection implementation using Eclipse Milo 1.0.x with
  * auto-reconnect and keep-alive.
  * Handles only connection management, separate from reading operations.
  */
-public class MiloOPCUAConnection implements IOPCUAConnection {
+public class MiloOPCUAConnection {
     private static final Logger logger = LoggerFactory.getLogger(MiloOPCUAConnection.class);
 
     private final OPCUAClientConfig config;
@@ -58,7 +56,6 @@ public class MiloOPCUAConnection implements IOPCUAConnection {
         this.retryPolicy = retryPolicy;
     }
 
-    @Override
     public CompletableFuture<Void> connect() {
         // Prevent multiple simultaneous connection attempts
         if (!connecting.compareAndSet(false, true)) {
@@ -107,9 +104,11 @@ public class MiloOPCUAConnection implements IOPCUAConnection {
                         .setSessionTimeout(uint(config.getSessionTimeout().toMillis()))
                         .build();
 
-                // Create and connect client
+                // Create client - Na versão 1.0.x, create() retorna diretamente o cliente
                 OpcUaClient newClient = OpcUaClient.create(clientConfig);
-                newClient.connect().get();
+
+                // Connect é um método separado que retorna CompletableFuture<OpcUaClient>
+                newClient.connectAsync().get();
 
                 // Set client atomically
                 this.client = newClient;
@@ -170,8 +169,8 @@ public class MiloOPCUAConnection implements IOPCUAConnection {
             }
 
             // Read server status to keep connection alive
-            client.readValue(0, TimestampsToReturn.Neither,
-                    Identifiers.Server_ServerStatus_State).get(5, TimeUnit.SECONDS);
+            client.disconnectAsync().get(5, TimeUnit.SECONDS);
+
         } catch (Exception e) {
             logger.warn("Keep-alive ping failed: {}", e.getMessage());
             handleConnectionLoss();
@@ -217,7 +216,7 @@ public class MiloOPCUAConnection implements IOPCUAConnection {
                     // Clean up old client
                     if (client != null) {
                         try {
-                            client.disconnect().get(5, TimeUnit.SECONDS);
+                            client.disconnectAsync().get(5, TimeUnit.SECONDS);
                         } catch (Exception ignored) {
                             // Best effort cleanup
                         }
@@ -243,7 +242,6 @@ public class MiloOPCUAConnection implements IOPCUAConnection {
         });
     }
 
-    @Override
     public CompletableFuture<Void> disconnect() {
         shouldReconnect.set(false);
 
@@ -267,7 +265,7 @@ public class MiloOPCUAConnection implements IOPCUAConnection {
             try {
                 if (client != null && connected.get()) {
                     try {
-                        client.disconnect().get(10, TimeUnit.SECONDS);
+                        client.disconnectAsync().get(10, TimeUnit.SECONDS);
                     } catch (Exception e) {
                         logger.warn("Error during disconnect: {}", e.getMessage());
                     }
@@ -282,39 +280,36 @@ public class MiloOPCUAConnection implements IOPCUAConnection {
         });
     }
 
-    @Override
     public boolean isConnected() {
         return connected.get() && client != null;
     }
 
-    @Override
     public String getServerUrl() {
         return config.getServerUrl();
     }
 
-    @Override
     public void close() throws Exception {
         disconnect().get();
     }
 
-    @Override
     public OpcUaClient getClient() {
         return client;
     }
 
-    @Override
     public ReadWriteLock getClientLock() {
         return clientLock;
     }
 
     private class MiloSessionActivityListener implements SessionActivityListener {
 
-        public void onSessionInactive(OpcUaClient client) {
+        @Override
+        public void onSessionInactive(UaSession session) {
             logger.warn("OPC-UA session became inactive");
             handleConnectionLoss();
         }
 
-        public void onSessionActive(OpcUaClient client) {
+        @Override
+        public void onSessionActive(UaSession session) {
             logger.info("OPC-UA session is active");
             connected.set(true);
         }

@@ -7,20 +7,23 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import com.opcua_arrow.data.DataPoint;
 import com.opcua_arrow.data.DataReadGroup;
 import com.opcua_arrow.data.TSValue;
-import com.opcua_arrow.loop.IReader;
-import com.opcua_arrow.opcua.IOPCUASubscriber;
+import com.opcua_arrow.loop.IReaderTask;
 import com.opcua_arrow.queues.IQueue;
 
-public class SubscribeTask implements IReader {
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-    private final IOPCUASubscriber subscriber;
+public class SubscribeTask implements IReaderTask {
+
+    private final Logger logger = LoggerFactory.getLogger(SubscribeTask.class);
+    private final ISubscriber subscriber;
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final List<DataPoint> pendingDataPoints = new ArrayList<>();
     private final DataReadGroup readGroup;
     private final IQueue<List<TSValue>> queue;
     private final Object lock = new Object();
 
-    public SubscribeTask(IOPCUASubscriber subscriber, DataReadGroup readGroup, IQueue<List<TSValue>> queue) {
+    public SubscribeTask(ISubscriber subscriber, DataReadGroup readGroup, IQueue<List<TSValue>> queue) {
         this.subscriber = subscriber;
         this.readGroup = readGroup;
         this.queue = queue;
@@ -41,12 +44,15 @@ public class SubscribeTask implements IReader {
 
     @Override
     public void addDataPoint(DataPoint dataPoint) {
+        assert dataPoint.getReadGroup() == readGroup
+                : "DataPoint's read group does not match SubscribeTask's read group.";
+        logger.debug("Adding DataPoint to SubscribeTask: {}", dataPoint);
         synchronized (lock) {
             if (!running.get()) {
                 pendingDataPoints.add(dataPoint);
             } else {
                 subscriber.addNodesToSubscription(
-                        readGroup.getInterval(),
+                        readGroup,
                         List.of(dataPoint),
                         this::queuePush);
             }
@@ -55,13 +61,16 @@ public class SubscribeTask implements IReader {
 
     @Override
     public void removeDataPoint(DataPoint dataPoint) {
+        assert dataPoint.getReadGroup() == readGroup
+                : "DataPoint's read group does not match SubscribeTask's read group.";
+        logger.debug("Removing DataPoint from SubscribeTask: {}", dataPoint);
         synchronized (lock) {
             if (!running.get()) {
                 pendingDataPoints.remove(dataPoint);
             } else {
                 subscriber.removeNodeFromSubscription(
-                        readGroup.getInterval(),
-                        dataPoint.getNodeId());
+                        readGroup,
+                        List.of(dataPoint.getNodeId()));
             }
         }
     }
@@ -72,7 +81,7 @@ public class SubscribeTask implements IReader {
             if (running.compareAndSet(false, true)) {
                 if (!pendingDataPoints.isEmpty()) {
                     subscriber.addNodesToSubscription(
-                            readGroup.getInterval(),
+                            readGroup,
                             new ArrayList<>(pendingDataPoints),
                             this::queuePush);
                     pendingDataPoints.clear();
@@ -84,7 +93,7 @@ public class SubscribeTask implements IReader {
     @Override
     public void stop() {
         if (running.compareAndSet(true, false)) {
-            subscriber.closeSubscription(readGroup.getInterval());
+            subscriber.closeSubscription(readGroup);
         }
     }
 }

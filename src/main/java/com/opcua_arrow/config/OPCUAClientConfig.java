@@ -11,7 +11,6 @@ public class OPCUAClientConfig {
     private String serverUrl;
     private String username;
     private String password;
-    private int subscriberQueueSize;
     private Duration requestTimeout = Duration.ofSeconds(60);
     private Duration sessionTimeout = Duration.ofMinutes(2);
     private Duration keepAliveInterval = Duration.ofSeconds(30);
@@ -19,15 +18,6 @@ public class OPCUAClientConfig {
 
     public String getServerUrl() {
         return serverUrl;
-    }
-
-    public int getSubscriberQueueSize() {
-        return subscriberQueueSize;
-    }
-
-    public OPCUAClientConfig setSubscriberQueueSize(int subscriberQueueSize) {
-        this.subscriberQueueSize = subscriberQueueSize;
-        return this;
     }
 
     public OPCUAClientConfig setServerUrl(String serverUrl) {

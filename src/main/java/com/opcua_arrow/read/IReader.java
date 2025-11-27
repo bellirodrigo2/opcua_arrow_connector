@@ -1,4 +1,4 @@
-package com.opcua_arrow.opcua;
+package com.opcua_arrow.read;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -6,7 +6,7 @@ import java.util.concurrent.CompletableFuture;
 import com.opcua_arrow.data.DataPoint;
 import com.opcua_arrow.data.TSValue;
 
-public interface IOPCUAReader extends AutoCloseable {
+public interface IReader extends AutoCloseable {
 
     List<DataPoint> getDataPoints();
 

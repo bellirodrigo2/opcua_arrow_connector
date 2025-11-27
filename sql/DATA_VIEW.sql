@@ -3,6 +3,8 @@
 CREATE OR REPLACE VIEW metadata.v_data_point_config AS
 SELECT
     ps.name as source_name,
+    dp.name as point_name,
+    dp.description as point_description,
     dpc.source_string as node_id,
     dpc.source_id as point_id,
     dp.data_type as value_type,

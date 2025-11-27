@@ -2,7 +2,7 @@ package com.opcua_arrow.opcua.milo;
 
 import java.time.Instant;
 
-import com.opcua_arrow.data.DataWriteGroup;
+import com.opcua_arrow.data.DataPoint;
 import com.opcua_arrow.data.TSValue;
 
 import org.eclipse.milo.opcua.stack.core.types.builtin.DataValue;
@@ -13,22 +13,22 @@ import org.eclipse.milo.opcua.stack.core.types.builtin.unsigned.UShort;
 
 public class TSValueFactory {
 
-    public TSValue createTSValue(int id, DataValue dv, DataWriteGroup group) {
+    public static TSValue createTSValue(DataPoint dp, DataValue dv) {
         // Pre-extract status code
         StatusCode status = dv.getStatusCode();
         Variant variant = dv.getValue();
         long timestampNanos = computeTimestampNanos(dv);
 
         return new TSValue(
-                id,
+                dp.getPointId(),
                 timestampNanos,
                 (variant != null) ? variant.getValue() : null,
                 status != null && status.isGood(),
-                group);
+                dp.getWriteGroup());
 
     }
 
-    private long computeTimestampNanos(DataValue dataValue) {
+    static private long computeTimestampNanos(DataValue dataValue) {
 
         DateTime sourceTime = dataValue.getSourceTime();
         if (sourceTime != null && !sourceTime.isNull()) {
