@@ -6,10 +6,10 @@ import com.opcua_arrow.data.DataPoint;
 import com.opcua_arrow.data.TSValue;
 
 public class TSValueAlarmFactory {
-    static TSValue createTSValue(DataPoint dp, String json) {
+    static TSValue createTSValue(DataPoint dp, String alarmJsonString) {
         long timestamp = System.nanoTime();
         Map<String, String> map = Map.of("name", dp.getName(), "description", dp.getDescription(), "nodeId",
-                dp.getNodeId(), "pointId", String.valueOf(dp.getPointId()), "content", json);
+                dp.getNodeId(), "pointId", String.valueOf(dp.getPointId()), "alarm", alarmJsonString);
 
         return new TSValue(dp.getPointId(), timestamp, (Object) map, true, dp.getWriteGroup());
 
