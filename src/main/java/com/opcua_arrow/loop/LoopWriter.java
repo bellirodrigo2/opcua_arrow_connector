@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
+import com.opcua_arrow.ICallBack;
 import com.opcua_arrow.batch_builder.IBufferBuilder;
 import com.opcua_arrow.data.BufferPackage;
 import com.opcua_arrow.data.DataPoint;
@@ -27,6 +28,7 @@ public class LoopWriter implements ILoop {
     private final IQueue<List<TSValue>> source;
     private final IQueue<BufferPackage> sink;
     private final BatchBufferFactory factory;
+    private final ICallBack callBack;
 
     private final ConcurrentHashMap<DataWriteGroup, IBufferBuilder> writerMap = new ConcurrentHashMap<>();
 
@@ -36,10 +38,12 @@ public class LoopWriter implements ILoop {
     public LoopWriter(
             IQueue<List<TSValue>> source,
             IQueue<BufferPackage> sink,
-            BatchBufferFactory factory) {
+            BatchBufferFactory factory,
+            ICallBack callBack) {
         this.source = source;
         this.sink = sink;
         this.factory = factory;
+        this.callBack = callBack;
     }
 
     @Override
@@ -62,19 +66,30 @@ public class LoopWriter implements ILoop {
         executor.submit(() -> {
             try {
                 while (!Thread.currentThread().isInterrupted()) {
+
                     reusableDataList.clear();
                     source.pop(reusableDataList);
-                    for (List<TSValue> data : reusableDataMap.values()) {
-                        data.clear();
-                    }
-                    for (List<TSValue> data : reusableDataList) {
-                        for (TSValue tsValue : data) {
-                            reusableDataMap
-                                    .computeIfAbsent(tsValue.writeGroup, k -> new ArrayList<>())
-                                    .add(tsValue);
+                    if (reusableDataList.isEmpty())
+                        continue;
+                    try {
+                        if (callBack != null)
+                            callBack.onLoopStart();
+
+                        for (List<TSValue> data : reusableDataMap.values()) {
+                            data.clear();
                         }
+                        for (List<TSValue> data : reusableDataList) {
+                            for (TSValue tsValue : data) {
+                                reusableDataMap
+                                        .computeIfAbsent(tsValue.writeGroup, k -> new ArrayList<>())
+                                        .add(tsValue);
+                            }
+                        }
+                        internalWrite(reusableDataMap);
+                    } finally {
+                        if (callBack != null)
+                            callBack.onLoopEnd();
                     }
-                    internalWrite(reusableDataMap);
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();

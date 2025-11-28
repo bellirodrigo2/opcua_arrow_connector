@@ -5,14 +5,18 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import com.opcua_arrow.ICallBack;
+
 public class QueueWrapper<T> implements IQueue<T> {
 
     private final BlockingQueue<T> queue;
     private final long timeoutMillis;
+    private final ICallBack callBack;
 
-    public QueueWrapper(int capacity, long timeoutMillis) {
+    public QueueWrapper(int capacity, long timeoutMillis, ICallBack callBack) {
         this.queue = new LinkedBlockingQueue<>(capacity);
         this.timeoutMillis = timeoutMillis;
+        this.callBack = callBack;
     }
 
     @Override
@@ -30,5 +34,8 @@ public class QueueWrapper<T> implements IQueue<T> {
 
         batch.add(first);
         queue.drainTo(batch);
+        if (callBack != null) {
+            callBack.run(batch);
+        }
     }
 }

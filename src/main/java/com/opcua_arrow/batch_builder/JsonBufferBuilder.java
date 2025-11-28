@@ -1,5 +1,6 @@
 package com.opcua_arrow.batch_builder;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -7,28 +8,26 @@ import com.opcua_arrow.data.TSValue;
 
 public class JsonBufferBuilder implements IBufferBuilder {
 
+    private final String sourceName;
     private ObjectMapper mapper = new ObjectMapper();
-    private List<TSValue> buffer;
+    private List<String> buffer = new ArrayList<>();
+
+    public JsonBufferBuilder(String sourceName) {
+        this.sourceName = sourceName;
+    }
 
     @Override
     public void appendList(List<TSValue> dataValues) {
 
-        buffer.addAll(dataValues);
+        buffer.addAll(dataValues.stream().map(ts -> (String) ts.value).toList());
     }
 
     @Override
     public byte[] flush() {
         try {
-            // Extrai apenas os values
-            List<Object> values = buffer.stream()
-                    .map(ts -> ts.value)
-                    .toList();
-
-            // Converte para JSON e retorna como byte[]
-            return mapper.writeValueAsBytes(values);
-
+            return mapper.writeValueAsBytes(buffer);
         } catch (Exception e) {
-            throw new RuntimeException("Erro ao serializar buffer para JSON", e);
+            throw new RuntimeException("Error while serializing buffer to JSON", e);
         } finally {
             buffer.clear(); // importante: limpa o buffer
         }
@@ -39,5 +38,9 @@ public class JsonBufferBuilder implements IBufferBuilder {
     public void close() {
         buffer.clear();
 
+    }
+
+    public int size() {
+        return buffer.stream().mapToInt(String::length).sum();
     }
 }

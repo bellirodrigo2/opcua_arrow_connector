@@ -52,6 +52,6 @@ public class OPCUAModule extends AbstractModule {
             MiloOPCUAConnection connection,
             OPCUAClientConfig config) {
         return new MiloOPCUASubscription(
-                connection);
+                connection, null);
     }
 }

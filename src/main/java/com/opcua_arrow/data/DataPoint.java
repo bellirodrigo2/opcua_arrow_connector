@@ -1,10 +1,5 @@
 package com.opcua_arrow.data;
 
-import com.opcua_arrow.data.equals.NoFilter;
-import com.opcua_arrow.data.equals.RangeEqualValue;
-import com.opcua_arrow.data.equals.StrictEqualValue;
-import com.opcua_arrow.service.DataPointDTO;
-
 public class DataPoint {
 
     private final String name;
@@ -33,10 +28,6 @@ public class DataPoint {
         this.writeGroup = writeGroup;
         this.readGroup = readGroup;
 
-    }
-
-    public static DataPoint fromConfig(DataPointDTO config) {
-        return DataPointFactory.createDataPoint(config);
     }
 
     public String getName() {
@@ -71,58 +62,4 @@ public class DataPoint {
         return nodeId;
     }
 
-    private static class DataPointFactory {
-
-        static public DataPoint createDataPoint(DataPointDTO config) {
-
-            String name = config.name;
-            String description = config.description;
-            String nodeId = config.nodeId;
-            Integer pointId = config.pointId;
-            EDataType dataType = getDataType(config.valueType);
-            EReadMode readMode = EReadMode.valueOf(config.readType.toUpperCase());
-            if (dataType == EDataType.EVENTS && readMode == EReadMode.EVENTS) {
-                throw new IllegalArgumentException("DataPoint cannot have EVENTS data type and EVENTS read mode");
-            }
-            IDataPointEqual equals = config.hasFilter ? createEquals(config.filterRange, config.filterIntervalSeconds,
-                    isNumeric(dataType)) : new NoFilter();
-            DataWriteGroup group = createDataWriteGroup(dataType, config.minRange,
-                    config.maxRange);
-            DataReadGroup interval = createDataReadGroup(readMode, config.interval_seconds);
-
-            return new DataPoint(name, description, nodeId, pointId, dataType, equals, group, interval);
-        }
-
-        static private DataReadGroup createDataReadGroup(EReadMode readMode, long interval) {
-            return new DataReadGroup(readMode, interval);
-        }
-
-        static private IDataPointEqual createEquals(double filterRange, long filterIntervalSeconds, boolean isNumeric) {
-            if (filterRange > 0 && isNumeric) {
-                return new RangeEqualValue(filterRange, filterIntervalSeconds);
-            }
-            return new StrictEqualValue(filterIntervalSeconds);
-        }
-
-        static private boolean isNumeric(EDataType dataType) {
-            return dataType == EDataType.NUMERIC;
-        }
-
-        static private DataWriteGroup createDataWriteGroup(EDataType dataType, int minRange,
-                int maxRange) {
-            IntRange intRange = new IntRange(minRange, maxRange);
-            return new DataWriteGroup(dataType, intRange);
-        }
-
-        static private EDataType getDataType(String valueType) {
-            return switch (valueType.toLowerCase()) {
-                case "boolean" -> EDataType.BOOLEAN;
-                case "string" -> EDataType.STRING;
-                case "int16", "uint16", "int32", "uint32", "int64", "uint64", "float", "double" -> EDataType.NUMERIC;
-                case "arrayboolean" -> EDataType.BOOLEAN_ARRAY;
-                case "arraynumeric" -> EDataType.NUMERIC_ARRAY;
-                default -> throw new IllegalArgumentException("Unsupported value type: " + valueType);
-            };
-        }
-    }
 }

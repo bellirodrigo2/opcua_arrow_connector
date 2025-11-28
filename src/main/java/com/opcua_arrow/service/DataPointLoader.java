@@ -8,9 +8,8 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.opcua_arrow.IContext;
 import com.opcua_arrow.config.PostgreSQLConfig;
-import com.opcua_arrow.context.Context;
-import com.opcua_arrow.data.DataPoint;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,17 +23,17 @@ public class DataPointLoader {
     private static final Logger logger = LoggerFactory.getLogger(DataPointLoader.class);
 
     private final IProvideDataPoint dataProvider;
-    private final Context context;
     private final PostgreSQLConfig config;
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+    private final IContext callBack;
 
     private Instant lastUpdate = Instant.EPOCH;
 
     @Inject
-    public DataPointLoader(IProvideDataPoint dataProvider, Context context, PostgreSQLConfig config) {
+    public DataPointLoader(IProvideDataPoint dataProvider, PostgreSQLConfig config, IContext callBack) {
         this.dataProvider = dataProvider;
-        this.context = context;
         this.config = config;
+        this.callBack = callBack;
     }
 
     /**
@@ -48,10 +47,8 @@ public class DataPointLoader {
             List<DataPointDTO> dataPoints = dataProvider.getDataPoints();
             logger.info("Found {} initial data points", dataPoints.size());
 
-            for (DataPointDTO dto : dataPoints) {
-                DataPoint params = DataPoint.fromConfig(dto);
-                context.update(params);
-            }
+            for (DataPointDTO dto : dataPoints)
+                callBack.update(DTOToDataPoint.createDataPoint(dto));
 
             // Update timestamp
             lastUpdate = Instant.now();
@@ -92,19 +89,18 @@ public class DataPointLoader {
             List<DataPointDTO> updated = dataProvider.getUpdatedDataPoints(lastUpdate);
             if (!updated.isEmpty()) {
                 logger.info("Found {} updated data points", updated.size());
-                for (DataPointDTO dto : updated) {
-                    DataPoint params = DataPoint.fromConfig(dto);
-                    context.update(params);
-                }
+                for (DataPointDTO dto : updated)
+                    callBack.update(DTOToDataPoint.createDataPoint(dto));
+
             }
 
             // Check for deleted data points
             List<String> deleted = dataProvider.getDeletedDataPoints(lastUpdate);
             if (!deleted.isEmpty()) {
                 logger.info("Found {} deleted data points", deleted.size());
-                for (String nodeId : deleted) {
-                    context.delete(nodeId);
-                }
+                for (String nodeId : deleted)
+                    callBack.delete(nodeId);
+
             }
 
             // Update timestamp

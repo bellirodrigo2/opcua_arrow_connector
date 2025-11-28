@@ -30,6 +30,6 @@ public class WriterModule extends AbstractModule {
             IQueue<List<TSValue>> source,
             IQueue<BufferPackage> sink,
             BatchBufferFactory factory) {
-        return new LoopWriter(source, sink, factory);
+        return new LoopWriter(source, sink, factory, null);
     }
 }

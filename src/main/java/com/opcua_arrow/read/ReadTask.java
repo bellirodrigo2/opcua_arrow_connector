@@ -7,6 +7,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import com.opcua_arrow.ICallBack;
 import com.opcua_arrow.data.DataPoint;
 import com.opcua_arrow.data.TSValue;
 import com.opcua_arrow.loop.IReaderTask;
@@ -24,12 +25,15 @@ public class ReadTask implements IReaderTask {
     private final IReader opcuaReader;
     private final Long intervalSeconds;
     private final IQueue<List<TSValue>> queue;
+    private final ICallBack callBack;
 
     public ReadTask(IReader opcuaReader, Long intervalSeconds,
-            IQueue<List<TSValue>> queue) {
+            IQueue<List<TSValue>> queue,
+            ICallBack callBack) {
         this.opcuaReader = opcuaReader;
         this.intervalSeconds = intervalSeconds;
         this.queue = queue;
+        this.callBack = callBack;
     }
 
     @Override
@@ -51,12 +55,17 @@ public class ReadTask implements IReaderTask {
     public void start() {
         // iniciar execução periódica
         scheduledTask = executor.scheduleAtFixedRate(() -> {
+            if (callBack != null)
+                callBack.onLoopStart();
             opcuaReader.read().thenAccept(values -> {
                 try {
                     List<TSValue> safeList = new ArrayList<>(values);
                     queue.push(safeList);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
+                } finally {
+                    if (callBack != null)
+                        callBack.onLoopEnd();
                 }
             }).exceptionally(ex -> {
                 logger.error("Read error", ex);

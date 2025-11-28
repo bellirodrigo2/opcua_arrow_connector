@@ -7,6 +7,7 @@ import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
+import com.opcua_arrow.batch_builder.AcumJsonBufferBuilder;
 import com.opcua_arrow.batch_builder.IBufferBuilder;
 import com.opcua_arrow.batch_builder.arrow.AcumBatchArrowBuilder;
 import com.opcua_arrow.batch_builder.arrow.IValueColumn;
@@ -75,7 +76,7 @@ public class FactoryModule extends AbstractModule {
             EReadMode readMode = readGroup.getReadMode();
             switch (readMode) {
                 case EReadMode.READ:
-                    return new ReadTask(opcuaReaderProvider.get(), intervalSeconds, queue);
+                    return new ReadTask(opcuaReaderProvider.get(), intervalSeconds, queue, null);
                 case EReadMode.SUBSCRIBE:
                     return new SubscribeTask(opcuaSubscriberProvider.get(), readGroup, queue);
                 case EReadMode.EVENTS:
@@ -97,18 +98,19 @@ public class FactoryModule extends AbstractModule {
 
         public IBufferBuilder createBatchBuffer(DataWriteGroup group) {
             EDataType dataType = group.getDataType();
-            if (dataType != EDataType.EVENTS) {
-                IValueColumn valueColumn = createValueColumn(dataType);
-                return new AcumBatchArrowBuilder(
-                        infraConfig.getInitialBufferBuilderCapacity(),
-                        infraConfig.isBufferCompressionEnabled(),
-                        valueColumn,
-                        infraConfig.getMinBufferFlushSize(),
-                        infraConfig.getMinFlushIntervalNanos());
-            } else {
-                // Implementar tratamento para eventos se necessario
-                throw new IllegalArgumentException("EVENTS data type not supported yet for batch buffer");
-            }
+            int minBufferFlushSize = infraConfig.getMinBufferFlushSize();
+            long minFlushIntervalNanos = infraConfig.getMinFlushIntervalNanos();
+
+            if (dataType == EDataType.EVENTS)
+                return new AcumJsonBufferBuilder("NameSource", minBufferFlushSize, minFlushIntervalNanos);
+
+            IValueColumn valueColumn = createValueColumn(dataType);
+            return new AcumBatchArrowBuilder(
+                    infraConfig.getInitialBufferBuilderCapacity(),
+                    infraConfig.isBufferCompressionEnabled(),
+                    valueColumn,
+                    minBufferFlushSize,
+                    minFlushIntervalNanos);
 
         }
 

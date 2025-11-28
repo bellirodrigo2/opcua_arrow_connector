@@ -16,6 +16,7 @@ public class ApplicationBootstrap {
 
         // Obter o contexto e o loader
         Context context = injector.getInstance(Context.class);
+
         DataPointLoader dataLoader = injector.getInstance(DataPointLoader.class);
 
         // Inicializar configuração de data points

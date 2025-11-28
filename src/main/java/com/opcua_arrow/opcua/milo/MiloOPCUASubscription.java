@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import com.opcua_arrow.ICallBack;
 import com.opcua_arrow.data.DataPoint;
 import com.opcua_arrow.data.DataReadGroup;
 import com.opcua_arrow.data.EReadMode;
@@ -27,12 +28,14 @@ import org.slf4j.LoggerFactory;
 public class MiloOPCUASubscription implements ISubscriber {
 
     private static final Logger logger = LoggerFactory.getLogger(MiloOPCUASubscription.class);
-    private Map<DataReadGroup, OpcUaSubscription> subscriptionMap = new ConcurrentHashMap<>();
-    private Map<String, DataPoint> nodeIdToPointIdMap = new ConcurrentHashMap<>();
-    private MiloOPCUAConnection connection;
+    private final Map<String, DataPoint> nodeIdToPointIdMap = new ConcurrentHashMap<>();
+    private final Map<DataReadGroup, OpcUaSubscription> subscriptionMap = new ConcurrentHashMap<>();
+    private final MiloOPCUAConnection connection;
+    private final ICallBack callBack;
 
-    public MiloOPCUASubscription(MiloOPCUAConnection connection) {
+    public MiloOPCUASubscription(MiloOPCUAConnection connection, ICallBack callBack) {
         this.connection = connection;
+        this.callBack = callBack;
     }
 
     @Override
@@ -117,6 +120,10 @@ public class MiloOPCUASubscription implements ISubscriber {
                     List<DataValue> dataValues) {
 
                 try {
+                    if (callBack != null) {
+                        callBack.run(dataValues);
+                        callBack.onLoopStart();
+                    }
                     List<TSValue> values = new ArrayList<>();
                     for (int i = 0; i < monitoredItems.size(); i++) {
                         DataPoint dp = nodeIdToPointIdMap
@@ -136,9 +143,14 @@ public class MiloOPCUASubscription implements ISubscriber {
                     }
                 } catch (Exception e) {
                     logger.error("Error in batch handler: " + e.getMessage());
+                } finally {
+                    if (callBack != null) {
+                        callBack.onLoopEnd();
+                    }
                 }
             }
         };
+
     }
 
     private SubscriptionListener createEventNotificationListener(Consumer<List<TSValue>> batchHandler) {

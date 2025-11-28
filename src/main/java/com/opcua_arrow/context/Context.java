@@ -4,13 +4,16 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.google.inject.name.Named;
+import com.opcua_arrow.IContext;
 import com.opcua_arrow.data.DataPoint;
 import com.opcua_arrow.data.DataReadGroup;
 import com.opcua_arrow.data.DataWriteGroup;
 import com.opcua_arrow.loop.ILoop;
 
-public class Context {
+@Singleton
+public class Context implements IContext {
 
     private final Map<String, DataPoint> paramsMap;
     private final ILoop reader;
