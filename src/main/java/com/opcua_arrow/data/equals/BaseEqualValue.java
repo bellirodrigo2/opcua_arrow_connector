@@ -4,14 +4,20 @@ import com.opcua_arrow.data.IDataPointEqual;
 
 public abstract class BaseEqualValue implements IDataPointEqual {
 
+    private final IsSameValue isSameValue;
+
     protected Object lastValue = null;
     protected boolean lastIsGood = false;
-    protected long lastUpdateNanos = 0L;
+    protected long lastUpdateNanos = -1L;
 
     protected final long intervalNanos;
 
-    protected BaseEqualValue(long intervalSeconds) {
+    protected BaseEqualValue(long intervalSeconds, IsSameValue isSameValue) {
+        if (intervalSeconds < 0) {
+            throw new IllegalArgumentException("Interval seconds must be non-negative");
+        }
         this.intervalNanos = intervalSeconds * 1_000_000_000L;
+        this.isSameValue = isSameValue;
     }
 
     @Override
@@ -19,34 +25,39 @@ public abstract class BaseEqualValue implements IDataPointEqual {
 
         final long now = System.nanoTime();
 
-        // Primeira atualização ou intervalo vigente
-        if (lastValue == null || (now - lastUpdateNanos) < intervalNanos) {
-            return !updateState(newValue, newIsGood, now);
+        if (lastUpdateNanos == -1L) {
+            updateState(newValue, newIsGood, now);
+            return false;
+        }
+        if (now - lastUpdateNanos >= intervalNanos) {
+            updateState(newValue, newIsGood, now);
+            return false;
         }
 
         // Status mudou
         if (newIsGood != lastIsGood) {
-            return !updateState(newValue, newIsGood, now);
+            updateState(newValue, newIsGood, now);
+            return false;
+        }
+        if (lastValue == null && newValue == null) {
+            return true;
+        }
+        if (lastValue == null || newValue == null) {
+            return false;
         }
 
-        // *** AQUI VEM A ESTRATÉGIA ***
-        if (!isSameValue(newValue)) {
-            return !updateState(newValue, newIsGood, now);
+        if (!isSameValue.isSameValue(newValue, lastValue)) {
+            updateState(newValue, newIsGood, now);
+            return false;
         }
 
         return true;
     }
 
-    // strategy method
-    protected abstract boolean isSameValue(Object newRawValue);
-
-    protected final boolean updateState(Object value, boolean isGood, long nowNanos) {
-        if (value == null)
-            return false;
+    protected void updateState(Object value, boolean isGood, long nowNanos) {
 
         lastValue = value;
         lastIsGood = isGood;
         lastUpdateNanos = nowNanos;
-        return true;
     }
 }
