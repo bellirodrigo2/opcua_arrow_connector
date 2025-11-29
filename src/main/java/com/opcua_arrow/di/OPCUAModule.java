@@ -8,7 +8,6 @@ import com.opcua_arrow.config.OPCUAClientConfig;
 import com.opcua_arrow.opcua.milo.MiloOPCUAConnection;
 import com.opcua_arrow.opcua.milo.MiloOPCUAReader;
 import com.opcua_arrow.opcua.milo.MiloOPCUASubscription;
-import com.opcua_arrow.opcua.milo.TSValueFactory;
 import com.opcua_arrow.opcua.retry.IRetryPolicy;
 import com.opcua_arrow.opcua.retry.resilience4j.Resilience4jRetryPolicy;
 import com.opcua_arrow.read.IReader;
@@ -41,9 +40,8 @@ public class OPCUAModule extends AbstractModule {
     @Provides
     public IReader provideOPCUAReader(
             MiloOPCUAConnection connection,
-            IRetryPolicy retryPolicy,
-            TSValueFactory tsValueFactory) {
-        return new MiloOPCUAReader(connection, retryPolicy, tsValueFactory);
+            IRetryPolicy retryPolicy) {
+        return new MiloOPCUAReader(connection, retryPolicy);
     }
 
     @Provides

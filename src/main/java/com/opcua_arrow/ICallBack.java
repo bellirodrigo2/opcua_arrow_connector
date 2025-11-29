@@ -3,9 +3,10 @@ package com.opcua_arrow;
 import java.util.Collection;
 
 public interface ICallBack {
-    void run(Collection<?> batch);
+    ICallBackObject startCallback(String label, Collection<?> batch);
 
-    void onLoopStart();
+    public interface ICallBackObject {
 
-    void onLoopEnd();
+        void close();
+    }
 }

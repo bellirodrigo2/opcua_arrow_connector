@@ -28,12 +28,10 @@ public class MiloOPCUAReader implements IReader {
 
     private final IRetryPolicy retryPolicy;
     private final MiloOPCUAConnection connection;
-    private final TSValueFactory tsValueFactory;
 
-    public MiloOPCUAReader(MiloOPCUAConnection connection, IRetryPolicy retryPolicy, TSValueFactory tsValueFactory) {
+    public MiloOPCUAReader(MiloOPCUAConnection connection, IRetryPolicy retryPolicy) {
         this.connection = connection;
         this.retryPolicy = retryPolicy;
-        this.tsValueFactory = tsValueFactory;
     }
 
     // ------------------------------------------------------------
@@ -152,7 +150,7 @@ public class MiloOPCUAReader implements IReader {
 
                         for (int i = 0; i < n; i++) {
                             DataPoint dp = ids.get(i);
-                            TSValue tsValue = tsValueFactory.createTSValue(dp, results[i]);
+                            TSValue tsValue = TSValueFactory.createTSValue(dp, results[i]);
                             if (tsValue.isConsistent() && dp.getEquals().isEqual(tsValue.value, tsValue.isGood)) {
                                 values.add(tsValue);
                             }

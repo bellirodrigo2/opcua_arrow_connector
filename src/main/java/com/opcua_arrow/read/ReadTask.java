@@ -8,6 +8,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import com.opcua_arrow.ICallBack;
+import com.opcua_arrow.ICallBack.ICallBackObject;
 import com.opcua_arrow.data.DataPoint;
 import com.opcua_arrow.data.TSValue;
 import com.opcua_arrow.loop.IReaderTask;
@@ -23,17 +24,19 @@ public class ReadTask implements IReaderTask {
     private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 
     private final IReader opcuaReader;
-    private final Long intervalSeconds;
+    private final Long intervalMilliSeconds;
     private final IQueue<List<TSValue>> queue;
     private final ICallBack callBack;
+    private final String label;
 
-    public ReadTask(IReader opcuaReader, Long intervalSeconds,
+    public ReadTask(IReader opcuaReader, Long intervalMilliSeconds,
             IQueue<List<TSValue>> queue,
             ICallBack callBack) {
         this.opcuaReader = opcuaReader;
-        this.intervalSeconds = intervalSeconds;
+        this.intervalMilliSeconds = intervalMilliSeconds;
         this.queue = queue;
         this.callBack = callBack;
+        this.label = "read_" + intervalMilliSeconds + "_ms";
     }
 
     @Override
@@ -55,8 +58,7 @@ public class ReadTask implements IReaderTask {
     public void start() {
         // iniciar execução periódica
         scheduledTask = executor.scheduleAtFixedRate(() -> {
-            if (callBack != null)
-                callBack.onLoopStart();
+            ICallBackObject ac = callBack.startCallback(label, opcuaReader.getDataPoints());
             opcuaReader.read().thenAccept(values -> {
                 try {
                     List<TSValue> safeList = new ArrayList<>(values);
@@ -64,15 +66,14 @@ public class ReadTask implements IReaderTask {
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 } finally {
-                    if (callBack != null)
-                        callBack.onLoopEnd();
+                    ac.close();
                 }
             }).exceptionally(ex -> {
                 logger.error("Read error", ex);
                 return null;
             });
 
-        }, 0, intervalSeconds, TimeUnit.SECONDS);
+        }, 0, intervalMilliSeconds, TimeUnit.MILLISECONDS);
     }
 
     @Override

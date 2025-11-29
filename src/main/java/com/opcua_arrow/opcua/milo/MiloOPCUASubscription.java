@@ -8,6 +8,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import com.opcua_arrow.ICallBack;
+import com.opcua_arrow.ICallBack.ICallBackObject;
 import com.opcua_arrow.data.DataPoint;
 import com.opcua_arrow.data.DataReadGroup;
 import com.opcua_arrow.data.EReadMode;
@@ -99,8 +100,8 @@ public class MiloOPCUASubscription implements ISubscriber {
                 newSubscription.setPublishingInterval(interval);
 
                 newSubscription.setSubscriptionListener(dataReadGroup.getReadMode() == EReadMode.EVENTS
-                        ? createEventNotificationListener(batchHandler)
-                        : createDataNotificationListener(batchHandler));
+                        ? createEventNotificationListener(batchHandler, dataReadGroup.getInterval())
+                        : createDataNotificationListener(batchHandler, dataReadGroup.getInterval()));
                 return newSubscription;
             } catch (Exception e) {
                 throw new RuntimeException(e);
@@ -111,19 +112,21 @@ public class MiloOPCUASubscription implements ISubscriber {
 
     }
 
-    private SubscriptionListener createDataNotificationListener(Consumer<List<TSValue>> batchHandler) {
+    private SubscriptionListener createDataNotificationListener(Consumer<List<TSValue>> batchHandler, Long interval) {
         return new SubscriptionListener() {
+
+            private String getLabel() {
+                return "subscription_data_" + interval + "_ms";
+            }
+
             @Override
             public void onDataReceived(
                     OpcUaSubscription subscription,
                     List<OpcUaMonitoredItem> monitoredItems,
                     List<DataValue> dataValues) {
 
+                ICallBackObject ac = callBack.startCallback(getLabel(), monitoredItems);
                 try {
-                    if (callBack != null) {
-                        callBack.run(dataValues);
-                        callBack.onLoopStart();
-                    }
                     List<TSValue> values = new ArrayList<>();
                     for (int i = 0; i < monitoredItems.size(); i++) {
                         DataPoint dp = nodeIdToPointIdMap
@@ -144,23 +147,27 @@ public class MiloOPCUASubscription implements ISubscriber {
                 } catch (Exception e) {
                     logger.error("Error in batch handler: " + e.getMessage());
                 } finally {
-                    if (callBack != null) {
-                        callBack.onLoopEnd();
-                    }
+                    ac.close();
                 }
             }
         };
 
     }
 
-    private SubscriptionListener createEventNotificationListener(Consumer<List<TSValue>> batchHandler) {
+    private SubscriptionListener createEventNotificationListener(Consumer<List<TSValue>> batchHandler, Long interval) {
         return new SubscriptionListener() {
+            private String getLabel() {
+                return "subscription_events_" + interval + "_ms";
+            }
+
             @Override
             public void onEventReceived(
                     OpcUaSubscription subscription,
                     List<OpcUaMonitoredItem> monitoredItems,
                     List<Variant[]> eventFieldLists) {
                 EncodingContext context = subscription.getClient().getStaticEncodingContext();
+                ICallBackObject ac = callBack.startCallback(getLabel(), monitoredItems);
+
                 try {
                     for (int i = 0; i < monitoredItems.size(); i++) {
 
@@ -202,18 +209,12 @@ public class MiloOPCUASubscription implements ISubscriber {
                     logger.debug("Received {} alarm events at {}", eventFieldLists.size());
                 } catch (Exception e) {
                     logger.error("Error processing alarm events: " + e.getMessage());
+                } finally {
+                    ac.close();
                 }
             }
         };
     }
-
-    // // Individual item value change callback
-    // private void onSubscriptionValue(OpcUaMonitoredItem item, DataValue value) {
-    // logger.debug("Value changed for item: " + item.getReadValueId().getNodeId() +
-    // " New Value: " + value.getValue());
-    // // This is called for individual item processing if needed
-    // // Usually overridden by custom value consumers
-    // }
 
     @Override
     public void closeSubscription(DataReadGroup dataReadGroup) {

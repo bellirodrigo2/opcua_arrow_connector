@@ -37,10 +37,10 @@ public class CoreModule extends AbstractModule {
         int timeoutMs = infraConfig.getQueueTimeoutMs();
 
         bind(new TypeLiteral<IQueue<List<TSValue>>>() {
-        }).toInstance(new QueueWrapper<>(capacity, timeoutMs, null));
+        }).toInstance(new QueueWrapper<>(capacity, timeoutMs));
 
         bind(new TypeLiteral<IQueue<BufferPackage>>() {
-        }).toInstance(new QueueWrapper<>(capacity, timeoutMs, null));
+        }).toInstance(new QueueWrapper<>(capacity, timeoutMs));
 
     }
 }

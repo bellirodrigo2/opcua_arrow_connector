@@ -9,6 +9,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 import com.opcua_arrow.ICallBack;
+import com.opcua_arrow.ICallBack.ICallBackObject;
 import com.opcua_arrow.batch_builder.IBufferBuilder;
 import com.opcua_arrow.data.BufferPackage;
 import com.opcua_arrow.data.DataPoint;
@@ -34,6 +35,7 @@ public class LoopWriter implements ILoop {
 
     private final List<List<TSValue>> reusableDataList = new ArrayList<>();
     private final Map<DataWriteGroup, List<TSValue>> reusableDataMap = new HashMap<>();
+    private final String label = "WriteLoop";
 
     public LoopWriter(
             IQueue<List<TSValue>> source,
@@ -71,10 +73,8 @@ public class LoopWriter implements ILoop {
                     source.pop(reusableDataList);
                     if (reusableDataList.isEmpty())
                         continue;
+                    ICallBackObject ac = callBack.startCallback(label, reusableDataList);
                     try {
-                        if (callBack != null)
-                            callBack.onLoopStart();
-
                         for (List<TSValue> data : reusableDataMap.values()) {
                             data.clear();
                         }
@@ -87,8 +87,7 @@ public class LoopWriter implements ILoop {
                         }
                         internalWrite(reusableDataMap);
                     } finally {
-                        if (callBack != null)
-                            callBack.onLoopEnd();
+                        ac.close();
                     }
                 }
             } catch (InterruptedException e) {

@@ -9,6 +9,7 @@ import java.util.concurrent.TimeUnit;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.opcua_arrow.IContext;
+import com.opcua_arrow.IDataPointFactory;
 import com.opcua_arrow.config.PostgreSQLConfig;
 
 import org.slf4j.Logger;
@@ -25,15 +26,18 @@ public class DataPointLoader {
     private final IProvideDataPoint dataProvider;
     private final PostgreSQLConfig config;
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-    private final IContext callBack;
+    private final IContext context;
+    private final IDataPointFactory<DataPointDTO> factory;
 
     private Instant lastUpdate = Instant.EPOCH;
 
     @Inject
-    public DataPointLoader(IProvideDataPoint dataProvider, PostgreSQLConfig config, IContext callBack) {
+    public DataPointLoader(IProvideDataPoint dataProvider, PostgreSQLConfig config, IContext context,
+            IDataPointFactory<DataPointDTO> factory) {
         this.dataProvider = dataProvider;
         this.config = config;
-        this.callBack = callBack;
+        this.context = context;
+        this.factory = factory;
     }
 
     /**
@@ -48,7 +52,7 @@ public class DataPointLoader {
             logger.info("Found {} initial data points", dataPoints.size());
 
             for (DataPointDTO dto : dataPoints)
-                callBack.update(DTOToDataPoint.createDataPoint(dto));
+                context.update(factory.createDataPoint(dto));
 
             // Update timestamp
             lastUpdate = Instant.now();
@@ -90,7 +94,7 @@ public class DataPointLoader {
             if (!updated.isEmpty()) {
                 logger.info("Found {} updated data points", updated.size());
                 for (DataPointDTO dto : updated)
-                    callBack.update(DTOToDataPoint.createDataPoint(dto));
+                    context.update(factory.createDataPoint(dto));
 
             }
 
@@ -99,7 +103,7 @@ public class DataPointLoader {
             if (!deleted.isEmpty()) {
                 logger.info("Found {} deleted data points", deleted.size());
                 for (String nodeId : deleted)
-                    callBack.delete(nodeId);
+                    context.delete(nodeId);
 
             }
 
