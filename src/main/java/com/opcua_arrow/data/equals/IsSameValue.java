@@ -1,6 +1,7 @@
 package com.opcua_arrow.data.equals;
 
+@FunctionalInterface
 public interface IsSameValue {
 
-    public Boolean isSameValue(Object newValue, Object oldValue);
+    public boolean isSameValue(Object newValue, Object oldValue);
 }

@@ -9,7 +9,7 @@ import com.google.inject.Singleton;
 import com.google.inject.name.Names;
 import com.opcua_arrow.data.BufferPackage;
 import com.opcua_arrow.data.TSValue;
-import com.opcua_arrow.di.FactoryModule.BatchBufferFactory;
+import com.opcua_arrow.loop.IBatchBufferFactory;
 import com.opcua_arrow.loop.ILoop;
 import com.opcua_arrow.loop.LoopWriter;
 import com.opcua_arrow.queues.IQueue;
@@ -29,7 +29,7 @@ public class WriterModule extends AbstractModule {
     public LoopWriter provideLoopWriter(
             IQueue<List<TSValue>> source,
             IQueue<BufferPackage> sink,
-            BatchBufferFactory factory) {
+            IBatchBufferFactory factory) {
         return new LoopWriter(source, sink, factory, null);
     }
 }

@@ -20,17 +20,17 @@ import com.opcua_arrow.config.OPCUAClientConfig;
 public class PostgreSQLDataPointProvider implements IProvideDataPoint {
 
     private final DataSource dataSource;
-    private final String sourceName;
+    // private final String sourceName;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Inject
     public PostgreSQLDataPointProvider(DataSource dataSource, String sourceName) {
         this.dataSource = dataSource;
-        this.sourceName = sourceName;
+        // this.sourceName = sourceName;
     }
 
     @Override
-    public OPCUAClientConfig getClientConfig() {
+    public OPCUAClientConfig getClientConfig(String sourceName) {
         String sql = "SELECT ps.source_config " +
                 "FROM metadata.point_source ps " +
                 "WHERE ps.name = ?";
@@ -54,7 +54,7 @@ public class PostgreSQLDataPointProvider implements IProvideDataPoint {
     }
 
     @Override
-    public List<DataPointDTO> getDataPoints() {
+    public List<DataPointDTO> getDataPoints(String sourceName) {
         String sql = "SELECT * FROM metadata.v_data_point_config " +
                 "WHERE source_name = ? AND deleted_at IS NULL";
 
@@ -62,7 +62,7 @@ public class PostgreSQLDataPointProvider implements IProvideDataPoint {
     }
 
     @Override
-    public List<DataPointDTO> getUpdatedDataPoints(Instant lastUpdate) {
+    public List<DataPointDTO> getUpdatedDataPoints(String sourceName, Instant lastUpdate) {
         String sql = "SELECT * FROM metadata.v_data_point_config " +
                 "WHERE source_name = ? AND deleted_at IS NULL AND updated_at > ?";
 
@@ -80,7 +80,7 @@ public class PostgreSQLDataPointProvider implements IProvideDataPoint {
     }
 
     @Override
-    public List<String> getDeletedDataPoints(Instant lastUpdate) {
+    public List<String> getDeletedDataPoints(String sourceName, Instant lastUpdate) {
         String sql = "SELECT node_id FROM metadata.v_data_point_config " +
                 "WHERE source_name = ? AND deleted_at IS NOT NULL AND deleted_at > ?";
 
@@ -132,7 +132,7 @@ public class PostgreSQLDataPointProvider implements IProvideDataPoint {
             Integer pointId = rs.getInt("point_id");
             String valueType = rs.getString("value_type");
             // String groupName = rs.getString("group_name");
-            Boolean hasFilter = rs.getBoolean("has_filter");
+            String filterType = rs.getString("filter_type");
             String rangeConfig = rs.getString("range_config");
             Double filterRange = rs.getObject("filter_range", Double.class);
             Long filterIntervalSeconds = rs.getObject("filter_interval_seconds", Long.class);
@@ -150,7 +150,7 @@ public class PostgreSQLDataPointProvider implements IProvideDataPoint {
 
             DataPointDTO dto = new DataPointDTO(
                     name, description, nodeId, valueType, pointId,
-                    minRange, maxRange, hasFilter, filterRangeValue, filterIntervalValue,
+                    minRange, maxRange, filterType, filterRangeValue, filterIntervalValue,
                     intervalSeconds, readType);
 
             dataPoints.add(dto);

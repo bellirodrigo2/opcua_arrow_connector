@@ -3,7 +3,10 @@ package com.opcua_arrow.config;
 /**
  * Configuration for infrastructure components (queues, buffers, etc.)
  */
-public class InfraConfig {
+public class AppConfig {
+
+    private String sourceName;
+    private long updateIntervalSeconds = 60;
 
     private int initialQueueCapacity = 1000;
     private int queueTimeoutMs = 5000;
@@ -15,11 +18,29 @@ public class InfraConfig {
     private long minFlushIntervalNanos = 1_000_000_000L; // 1 second
     private int bufferFlushIntervalMs = 1000;
 
+    public String getSourceName() {
+        return sourceName;
+    }
+
+    public AppConfig setSourceName(String sourceName) {
+        this.sourceName = sourceName;
+        return this;
+    }
+
+    public long getUpdateIntervalSeconds() {
+        return updateIntervalSeconds;
+    }
+
+    public AppConfig setUpdateIntervalSeconds(long updateIntervalSeconds) {
+        this.updateIntervalSeconds = updateIntervalSeconds;
+        return this;
+    }
+
     public int getInitialQueueCapacity() {
         return initialQueueCapacity;
     }
 
-    public InfraConfig setInitialQueueCapacity(int initialQueueCapacity) {
+    public AppConfig setInitialQueueCapacity(int initialQueueCapacity) {
         this.initialQueueCapacity = initialQueueCapacity;
         return this;
     }
@@ -28,7 +49,7 @@ public class InfraConfig {
         return queueTimeoutMs;
     }
 
-    public InfraConfig setQueueTimeoutMs(int queueTimeoutMs) {
+    public AppConfig setQueueTimeoutMs(int queueTimeoutMs) {
         this.queueTimeoutMs = queueTimeoutMs;
         return this;
     }
@@ -37,7 +58,7 @@ public class InfraConfig {
         return initialBufferBuilderCapacity;
     }
 
-    public InfraConfig setInitialBufferBuilderCapacity(int initialBufferBuilderCapacity) {
+    public AppConfig setInitialBufferBuilderCapacity(int initialBufferBuilderCapacity) {
         this.initialBufferBuilderCapacity = initialBufferBuilderCapacity;
         return this;
     }
@@ -46,7 +67,7 @@ public class InfraConfig {
         return bufferCompressionEnabled;
     }
 
-    public InfraConfig setBufferCompressionEnabled(boolean bufferCompressionEnabled) {
+    public AppConfig setBufferCompressionEnabled(boolean bufferCompressionEnabled) {
         this.bufferCompressionEnabled = bufferCompressionEnabled;
         return this;
     }
@@ -55,7 +76,7 @@ public class InfraConfig {
         return minBufferFlushSize;
     }
 
-    public InfraConfig setMinBufferFlushSize(int minBufferFlushSize) {
+    public AppConfig setMinBufferFlushSize(int minBufferFlushSize) {
         this.minBufferFlushSize = minBufferFlushSize;
         return this;
     }
@@ -64,7 +85,7 @@ public class InfraConfig {
         return minFlushIntervalNanos;
     }
 
-    public InfraConfig setMinFlushIntervalNanos(long minFlushIntervalNanos) {
+    public AppConfig setMinFlushIntervalNanos(long minFlushIntervalNanos) {
         this.minFlushIntervalNanos = minFlushIntervalNanos;
         return this;
     }
@@ -73,7 +94,7 @@ public class InfraConfig {
         return bufferFlushIntervalMs;
     }
 
-    public InfraConfig setBufferFlushIntervalMs(int bufferFlushIntervalMs) {
+    public AppConfig setBufferFlushIntervalMs(int bufferFlushIntervalMs) {
         this.bufferFlushIntervalMs = bufferFlushIntervalMs;
         return this;
     }
@@ -81,8 +102,15 @@ public class InfraConfig {
     /**
      * Create configuration from environment variables
      */
-    public static InfraConfig fromEnvironment() {
-        InfraConfig config = new InfraConfig();
+    public static AppConfig fromEnvironment() {
+        AppConfig config = new AppConfig();
+
+        String sourceName = System.getenv("APP_SOURCE_NAME");
+        if (sourceName != null) {
+            config.setSourceName(sourceName);
+        } else {
+            throw new IllegalArgumentException("APP_SOURCE_NAME environment variable is required");
+        }
 
         // Queue settings
         String initialQueueCapacity = System.getenv("QUEUE_INITIAL_CAPACITY");

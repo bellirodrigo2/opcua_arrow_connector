@@ -8,9 +8,9 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.google.inject.name.Named;
 import com.opcua_arrow.IContext;
 import com.opcua_arrow.IDataPointFactory;
-import com.opcua_arrow.config.PostgreSQLConfig;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,20 +24,23 @@ public class DataPointLoader {
     private static final Logger logger = LoggerFactory.getLogger(DataPointLoader.class);
 
     private final IProvideDataPoint dataProvider;
-    private final PostgreSQLConfig config;
-    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private final IContext context;
     private final IDataPointFactory<DataPointDTO> factory;
+    private final String sourceName;
+    private final long intervalSeconds;
 
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private Instant lastUpdate = Instant.EPOCH;
 
     @Inject
-    public DataPointLoader(IProvideDataPoint dataProvider, PostgreSQLConfig config, IContext context,
-            IDataPointFactory<DataPointDTO> factory) {
+    public DataPointLoader(IProvideDataPoint dataProvider, IContext context,
+            IDataPointFactory<DataPointDTO> factory, @Named("sourceName") String sourceName,
+            @Named("updateIntervalSeconds") long intervalSeconds) {
         this.dataProvider = dataProvider;
-        this.config = config;
         this.context = context;
         this.factory = factory;
+        this.sourceName = sourceName;
+        this.intervalSeconds = intervalSeconds;
     }
 
     /**
@@ -48,7 +51,7 @@ public class DataPointLoader {
 
         try {
             // Load all initial data points
-            List<DataPointDTO> dataPoints = dataProvider.getDataPoints();
+            List<DataPointDTO> dataPoints = dataProvider.getDataPoints(sourceName);
             logger.info("Found {} initial data points", dataPoints.size());
 
             for (DataPointDTO dto : dataPoints)
@@ -72,13 +75,8 @@ public class DataPointLoader {
      * Start periodic configuration updates
      */
     private void startHotReloadScheduler() {
-        if (!config.isEnableHotReload()) {
-            logger.info("Hot-reload is disabled");
-            return;
-        }
-
-        long intervalSeconds = config.getHotReloadInterval().toSeconds();
-        scheduler.scheduleAtFixedRate(this::checkForUpdates, intervalSeconds, intervalSeconds, TimeUnit.SECONDS);
+        scheduler.scheduleAtFixedRate(this::checkForUpdates, intervalSeconds, intervalSeconds,
+                TimeUnit.SECONDS);
         logger.info("Hot-reload scheduler started ({} second intervals)", intervalSeconds);
     }
 
@@ -90,7 +88,7 @@ public class DataPointLoader {
             Instant checkTime = Instant.now();
 
             // Check for updated data points
-            List<DataPointDTO> updated = dataProvider.getUpdatedDataPoints(lastUpdate);
+            List<DataPointDTO> updated = dataProvider.getUpdatedDataPoints(sourceName, lastUpdate);
             if (!updated.isEmpty()) {
                 logger.info("Found {} updated data points", updated.size());
                 for (DataPointDTO dto : updated)
@@ -99,7 +97,7 @@ public class DataPointLoader {
             }
 
             // Check for deleted data points
-            List<String> deleted = dataProvider.getDeletedDataPoints(lastUpdate);
+            List<String> deleted = dataProvider.getDeletedDataPoints(sourceName, lastUpdate);
             if (!deleted.isEmpty()) {
                 logger.info("Found {} deleted data points", deleted.size());
                 for (String nodeId : deleted)

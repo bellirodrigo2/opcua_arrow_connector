@@ -64,9 +64,11 @@ CREATE TABLE IF NOT EXISTS metadata.data_point_config(
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TYPE FILTERTYPE AS ENUM ('None', 'Equal', 'Range');
+
 CREATE TABLE IF NOT EXISTS metadata.filter_config (
     filter_uuid UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    has_filter BOOLEAN NOT NULL DEFAULT FALSE,
+    filter_type FILTERTYPE NOT NULL DEFAULT 'Equal',
     range DOUBLE PRECISION NOT NULL DEFAULT 5.0,
     interval_seconds BIGINT NOT NULL DEFAULT 30
 );

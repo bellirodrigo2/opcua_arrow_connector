@@ -16,13 +16,15 @@ import com.opcua_arrow.batch_builder.arrow.columns.BooleanValueColumn;
 import com.opcua_arrow.batch_builder.arrow.columns.DoubleArrayValueColumn;
 import com.opcua_arrow.batch_builder.arrow.columns.DoubleValueColumn;
 import com.opcua_arrow.batch_builder.arrow.columns.StringValueColumn;
+import com.opcua_arrow.config.AppConfig;
 import com.opcua_arrow.config.ConfigProvider;
-import com.opcua_arrow.config.InfraConfig;
 import com.opcua_arrow.data.DataReadGroup;
 import com.opcua_arrow.data.DataWriteGroup;
 import com.opcua_arrow.data.EDataType;
 import com.opcua_arrow.data.EReadMode;
 import com.opcua_arrow.data.TSValue;
+import com.opcua_arrow.loop.IBatchBufferFactory;
+import com.opcua_arrow.loop.IReadTaskFactory;
 import com.opcua_arrow.loop.IReaderTask;
 import com.opcua_arrow.queues.IQueue;
 import com.opcua_arrow.read.IReader;
@@ -42,7 +44,7 @@ public class FactoryModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public ReadTaskFactory provideReadTaskFactory(
+    public IReadTaskFactory provideReadTaskFactory(
             IQueue<List<TSValue>> queue,
             Provider<IReader> opcuaReaderProvider,
             Provider<ISubscriber> opcuaSubscriberProvider) {
@@ -56,7 +58,7 @@ public class FactoryModule extends AbstractModule {
         return new BatchBufferFactory(configProvider.getInfraConfig());
     }
 
-    public static class ReadTaskFactory {
+    public static class ReadTaskFactory implements IReadTaskFactory {
         private final IQueue<List<TSValue>> queue;
         private final Provider<IReader> opcuaReaderProvider;
         private final Provider<ISubscriber> opcuaSubscriberProvider;
@@ -88,11 +90,11 @@ public class FactoryModule extends AbstractModule {
         }
     }
 
-    public static class BatchBufferFactory {
+    public static class BatchBufferFactory implements IBatchBufferFactory {
 
-        private final InfraConfig infraConfig;
+        private final AppConfig infraConfig;
 
-        public BatchBufferFactory(InfraConfig infraConfig) {
+        public BatchBufferFactory(AppConfig infraConfig) {
             this.infraConfig = infraConfig;
         }
 

@@ -15,7 +15,6 @@ import com.opcua_arrow.data.BufferPackage;
 import com.opcua_arrow.data.DataPoint;
 import com.opcua_arrow.data.DataWriteGroup;
 import com.opcua_arrow.data.TSValue;
-import com.opcua_arrow.di.FactoryModule.BatchBufferFactory;
 import com.opcua_arrow.queues.IQueue;
 
 import org.slf4j.Logger;
@@ -28,7 +27,7 @@ public class LoopWriter implements ILoop {
 
     private final IQueue<List<TSValue>> source;
     private final IQueue<BufferPackage> sink;
-    private final BatchBufferFactory factory;
+    private final IBatchBufferFactory factory;
     private final ICallBack callBack;
 
     private final ConcurrentHashMap<DataWriteGroup, IBufferBuilder> writerMap = new ConcurrentHashMap<>();
@@ -40,7 +39,7 @@ public class LoopWriter implements ILoop {
     public LoopWriter(
             IQueue<List<TSValue>> source,
             IQueue<BufferPackage> sink,
-            BatchBufferFactory factory,
+            IBatchBufferFactory factory,
             ICallBack callBack) {
         this.source = source;
         this.sink = sink;

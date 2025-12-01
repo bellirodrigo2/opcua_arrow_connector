@@ -12,7 +12,7 @@ public class DataPointDTO {
     public final int minRange;
     public final int maxRange;
 
-    public final boolean hasFilter;
+    public final String filterType;
     public final double filterRange;
     public final long filterIntervalSeconds;
 
@@ -20,7 +20,7 @@ public class DataPointDTO {
     public final long interval_seconds; // loop interval
 
     public DataPointDTO(String name, String description, String nodeId, String valueType, Integer pointId, int minRange,
-            int maxRange, boolean hasFilter, double filterRange, long filterIntervalSeconds,
+            int maxRange, String filterType, double filterRange, long filterIntervalSeconds,
             long interval_seconds, String readType) {
         this.name = name;
         this.description = description;
@@ -30,7 +30,7 @@ public class DataPointDTO {
         // this.groupName = groupName;
         this.minRange = minRange;
         this.maxRange = maxRange;
-        this.hasFilter = hasFilter;
+        this.filterType = filterType;
         this.filterRange = filterRange;
         this.filterIntervalSeconds = filterIntervalSeconds;
         this.interval_seconds = interval_seconds;

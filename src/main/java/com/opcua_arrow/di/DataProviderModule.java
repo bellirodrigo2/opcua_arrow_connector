@@ -15,8 +15,15 @@ import com.opcua_arrow.data.EDataType;
 import com.opcua_arrow.data.EReadMode;
 import com.opcua_arrow.data.IDataPointEqual;
 import com.opcua_arrow.data.IntRange;
+import com.opcua_arrow.data.equals.BaseEqualValue;
+import com.opcua_arrow.data.equals.IsSameValue;
 import com.opcua_arrow.data.equals.NoFilter;
 import com.opcua_arrow.data.equals.RangeEqualValue;
+import com.opcua_arrow.data.equals.StrictEqualBoolean;
+import com.opcua_arrow.data.equals.StrictEqualBooleanArray;
+import com.opcua_arrow.data.equals.StrictEqualDouble;
+import com.opcua_arrow.data.equals.StrictEqualDoubleArray;
+import com.opcua_arrow.data.equals.StrictEqualString;
 import com.opcua_arrow.service.DataPointDTO;
 import com.opcua_arrow.service.IProvideDataPoint;
 import com.opcua_arrow.service.PostgreSQLDataPointProvider;
@@ -97,11 +104,11 @@ public class DataProviderModule extends AbstractModule {
         return new HikariDataSource(hikariConfig);
     }
 
-    @Provides
-    @Singleton
-    public String provideSourceName(PostgreSQLConfig config) {
-        return config.getSourceName();
-    }
+    // @Provides
+    // @Singleton
+    // public String provideSourceName(PostgreSQLConfig config) {
+    // return config.getSourceName();
+    // }
 
     private class DTOToDataPoint implements IDataPointFactory<DataPointDTO> {
 
@@ -117,8 +124,8 @@ public class DataProviderModule extends AbstractModule {
             if (dataType == EDataType.EVENTS && readMode == EReadMode.EVENTS) {
                 throw new IllegalArgumentException("DataPoint cannot have EVENTS data type and EVENTS read mode");
             }
-            IDataPointEqual equals = config.hasFilter ? createEquals(config.filterRange, config.filterIntervalSeconds,
-                    isNumeric(dataType)) : new NoFilter();
+            IDataPointEqual equals = createEquals(config.filterType, config.filterRange, config.filterIntervalSeconds,
+                    dataType);
             DataWriteGroup group = createDataWriteGroup(dataType, config.minRange,
                     config.maxRange);
             DataReadGroup interval = createDataReadGroup(readMode, config.interval_seconds);
@@ -130,11 +137,41 @@ public class DataProviderModule extends AbstractModule {
             return new DataReadGroup(readMode, interval);
         }
 
-        private IDataPointEqual createEquals(double filterRange, long filterIntervalSeconds, boolean isNumeric) {
-            if (filterRange > 0 && isNumeric) {
-                return new RangeEqualValue(filterRange, filterIntervalSeconds);
+        private IDataPointEqual createEquals(String filterType, double filterRange, long filterIntervalSeconds,
+                EDataType dataType) {
+            switch (filterType.toLowerCase()) {
+                case "none":
+                    return new NoFilter();
+                case "equal":
+                    return new BaseEqualValue(filterIntervalSeconds, createIsSameValue(dataType));
+                case "range":
+                    if (isNumeric(dataType)) {
+                        return new BaseEqualValue(filterIntervalSeconds, new RangeEqualValue(filterRange));
+                    } else {
+                        logger.warn(
+                                "Range filter is not applicable for non-numeric data types. Defaulting to StrictEqualValue.");
+                        return new BaseEqualValue(filterIntervalSeconds, createIsSameValue(dataType));
+                    }
+                default:
+                    throw new IllegalArgumentException("Unsupported filter type: " + filterType);
             }
-            return new StrictEqualValue(filterIntervalSeconds);
+        }
+
+        private IsSameValue createIsSameValue(EDataType dataType) {
+            switch (dataType) {
+                case EDataType.BOOLEAN:
+                    return new StrictEqualBoolean();
+                case EDataType.STRING:
+                    return new StrictEqualString();
+                case EDataType.NUMERIC:
+                    return new StrictEqualDouble();
+                case EDataType.BOOLEAN_ARRAY:
+                    return new StrictEqualBooleanArray();
+                case EDataType.NUMERIC_ARRAY:
+                    return new StrictEqualDoubleArray();
+                default:
+                    throw new IllegalArgumentException("IsSameValue not supported for data type: " + dataType);
+            }
         }
 
         private boolean isNumeric(EDataType dataType) {

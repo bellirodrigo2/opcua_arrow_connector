@@ -1,4 +1,4 @@
-package com.opcua_arrow.context;
+package com.opcua_arrow;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 

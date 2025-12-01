@@ -9,7 +9,7 @@ public class RangeEqualValue implements IsSameValue {
     }
 
     @Override
-    public Boolean isSameValue(Object newRawValue, Object lastValue) {
+    public boolean isSameValue(Object newRawValue, Object lastValue) {
 
         // cast seguro garantido externamente
         Number num = (Number) newRawValue;
@@ -18,25 +18,15 @@ public class RangeEqualValue implements IsSameValue {
         final double oldVal = oldNum.doubleValue();
         final double newVal = num.doubleValue();
 
-        // if (Double.isNaN(newVal) || Double.isNaN(oldVal)) {
-        // return false;
-        // }
-        // if (Double.isInfinite(newVal) || Double.isInfinite(oldVal)) {
-        // return newVal == oldVal; // mesmo infinito => igual
-        // }
+        if (Double.isNaN(newVal) || Double.isNaN(oldVal))
+            return false;
+
+        if (Double.isInfinite(newVal) || Double.isInfinite(oldVal))
+            return newVal == oldVal; // mesmo infinito => igual
 
         final double diff = Math.abs(newVal - oldVal);
-
-        double base = Math.abs(oldVal);
-        double allowed;
-
-        // Base 0: usa range como tolerância absoluta (testZeroValueBase)
-        if (base == 0.0d) {
-            allowed = range;
-        } else {
-            allowed = base * range;
-        }
-        // final double allowed = oldVal * range;
+        final double base = Math.abs(oldVal);
+        final double allowed = (base == 0.0d ? range : base * range);
 
         return diff <= allowed;
     }

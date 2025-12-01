@@ -6,9 +6,10 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.TypeLiteral;
+import com.google.inject.name.Names;
 import com.opcua_arrow.IContext;
+import com.opcua_arrow.config.AppConfig;
 import com.opcua_arrow.config.ConfigProvider;
-import com.opcua_arrow.config.InfraConfig;
 import com.opcua_arrow.context.Context;
 import com.opcua_arrow.data.BufferPackage;
 import com.opcua_arrow.data.DataPoint;
@@ -32,9 +33,9 @@ public class CoreModule extends AbstractModule {
         bind(new TypeLiteral<Map<String, DataPoint>>() {
         }).toInstance(new ConcurrentHashMap<>());
 
-        InfraConfig infraConfig = configProvider.getInfraConfig();
-        int capacity = infraConfig.getInitialQueueCapacity();
-        int timeoutMs = infraConfig.getQueueTimeoutMs();
+        AppConfig appConfig = configProvider.getInfraConfig();
+        int capacity = appConfig.getInitialQueueCapacity();
+        int timeoutMs = appConfig.getQueueTimeoutMs();
 
         bind(new TypeLiteral<IQueue<List<TSValue>>>() {
         }).toInstance(new QueueWrapper<>(capacity, timeoutMs));
@@ -42,5 +43,11 @@ public class CoreModule extends AbstractModule {
         bind(new TypeLiteral<IQueue<BufferPackage>>() {
         }).toInstance(new QueueWrapper<>(capacity, timeoutMs));
 
+        bind(String.class)
+                .annotatedWith(Names.named("sourceName"))
+                .toInstance(appConfig.getSourceName());
+        bind(Long.class)
+                .annotatedWith(Names.named("updateIntervalSeconds"))
+                .toInstance(appConfig.getUpdateIntervalSeconds());
     }
 }

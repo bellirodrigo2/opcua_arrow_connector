@@ -7,11 +7,11 @@ import com.opcua_arrow.config.OPCUAClientConfig;
 
 public interface IProvideDataPoint {
 
-    OPCUAClientConfig getClientConfig();
+    OPCUAClientConfig getClientConfig(String sourceName);
 
-    List<DataPointDTO> getDataPoints();
+    List<DataPointDTO> getDataPoints(String sourceName);
 
-    List<DataPointDTO> getUpdatedDataPoints(Instant lastUpdate);
+    List<DataPointDTO> getUpdatedDataPoints(String sourceName, Instant lastUpdate);
 
-    List<String> getDeletedDataPoints(Instant lastUpdate);
+    List<String> getDeletedDataPoints(String sourceName, Instant lastUpdate);
 }

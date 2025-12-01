@@ -7,12 +7,12 @@ import org.slf4j.LoggerFactory;
  * Central configuration provider for the application
  */
 public class ConfigProvider {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(ConfigProvider.class);
 
     private final PostgreSQLConfig postgreSQLConfig;
     private final RetryPolicyConfig retryPolicyConfig;
-    private final InfraConfig infraConfig;
+    private final AppConfig infraConfig;
     private final OPCUAClientConfig opcuaClientConfig;
 
     public ConfigProvider() {
@@ -30,7 +30,7 @@ public class ConfigProvider {
         logger.debug("Infra Config: {}", infraConfig);
         logger.debug("OPCUA Client Config: {}", opcuaClientConfig);
     }
-    
+
     private PostgreSQLConfig loadPostgreSQLConfig() {
         try {
             PostgreSQLConfig config = PostgreSQLConfig.fromEnvironment();
@@ -41,7 +41,7 @@ public class ConfigProvider {
             throw new RuntimeException("PostgreSQL configuration error", e);
         }
     }
-    
+
     private RetryPolicyConfig loadRetryPolicyConfig() {
         try {
             RetryPolicyConfig config = RetryPolicyConfig.fromEnvironment();
@@ -53,9 +53,9 @@ public class ConfigProvider {
         }
     }
 
-    private InfraConfig loadInfraConfig() {
+    private AppConfig loadInfraConfig() {
         try {
-            InfraConfig config = InfraConfig.fromEnvironment();
+            AppConfig config = AppConfig.fromEnvironment();
             config.validate();
             return config;
         } catch (Exception e) {
@@ -97,16 +97,16 @@ public class ConfigProvider {
             throw new RuntimeException("Invalid configuration", e);
         }
     }
-    
+
     public PostgreSQLConfig getPostgreSQLConfig() {
         return postgreSQLConfig;
     }
-    
+
     public RetryPolicyConfig getRetryPolicyConfig() {
         return retryPolicyConfig;
     }
 
-    public InfraConfig getInfraConfig() {
+    public AppConfig getInfraConfig() {
         return infraConfig;
     }
 
@@ -123,7 +123,6 @@ public class ConfigProvider {
         pgConfig.setJdbcUrl("jdbc:postgresql://localhost:5432/opcua_arrow_test");
         pgConfig.setUsername("test_user");
         pgConfig.setPassword("test_password");
-        pgConfig.setSourceName("test_source");
         pgConfig.setMaxPoolSize(5);
         pgConfig.setMinPoolSize(1);
 
@@ -131,7 +130,7 @@ public class ConfigProvider {
         RetryPolicyConfig retryConfig = new RetryPolicyConfig();
 
         // Create test infra config
-        InfraConfig infraConfig = new InfraConfig();
+        AppConfig infraConfig = new AppConfig();
 
         return new ConfigProvider(pgConfig, retryConfig, infraConfig);
     }
@@ -139,7 +138,8 @@ public class ConfigProvider {
     /**
      * Constructor for testing purposes
      */
-    private ConfigProvider(PostgreSQLConfig postgreSQLConfig, RetryPolicyConfig retryPolicyConfig, InfraConfig infraConfig) {
+    private ConfigProvider(PostgreSQLConfig postgreSQLConfig, RetryPolicyConfig retryPolicyConfig,
+            AppConfig infraConfig) {
         this.postgreSQLConfig = postgreSQLConfig;
         this.retryPolicyConfig = retryPolicyConfig;
         this.infraConfig = infraConfig;

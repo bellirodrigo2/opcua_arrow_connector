@@ -7,6 +7,7 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import com.opcua_arrow.IContext;
+import com.opcua_arrow.RunningState;
 import com.opcua_arrow.data.DataPoint;
 import com.opcua_arrow.data.DataReadGroup;
 import com.opcua_arrow.data.DataWriteGroup;
@@ -55,11 +56,13 @@ public class Context implements IContext {
 
         DataWriteGroup existingWriteGroup = existing.getWriteGroup();
         if (!existingWriteGroup.equals(newWriteGroup)) {
+            if (existingWriteGroup.getDataType() != newWriteGroup.getDataType())
+                throw new IllegalArgumentException("Cannot change data type of existing DataWriteGroup");
+
             writer.addDataPoint(params);
-            if (DataWriteGrouCount(existingWriteGroup) == 1) {
+            if (DataWriteGroupCount(existingWriteGroup) == 1) {
                 writer.removeDataPoint(existing);
             }
-
         }
 
         DataReadGroup existingReadGroup = existing.getReadGroup();
@@ -88,7 +91,7 @@ public class Context implements IContext {
         return false;
     }
 
-    private int DataWriteGrouCount(DataWriteGroup writeGroup) {
+    private int DataWriteGroupCount(DataWriteGroup writeGroup) {
         int count = 0;
         for (DataPoint params : paramsMap.values()) {
             if (params.getWriteGroup().equals(writeGroup)) {

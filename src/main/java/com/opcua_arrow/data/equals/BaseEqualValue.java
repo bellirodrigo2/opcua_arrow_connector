@@ -2,7 +2,7 @@ package com.opcua_arrow.data.equals;
 
 import com.opcua_arrow.data.IDataPointEqual;
 
-public abstract class BaseEqualValue implements IDataPointEqual {
+public class BaseEqualValue implements IDataPointEqual {
 
     private final IsSameValue isSameValue;
 
@@ -12,7 +12,7 @@ public abstract class BaseEqualValue implements IDataPointEqual {
 
     protected final long intervalNanos;
 
-    protected BaseEqualValue(long intervalSeconds, IsSameValue isSameValue) {
+    public BaseEqualValue(long intervalSeconds, IsSameValue isSameValue) {
         if (intervalSeconds < 0) {
             throw new IllegalArgumentException("Interval seconds must be non-negative");
         }
@@ -43,6 +43,7 @@ public abstract class BaseEqualValue implements IDataPointEqual {
             return true;
         }
         if (lastValue == null || newValue == null) {
+            updateState(newValue, newIsGood, now);
             return false;
         }
 

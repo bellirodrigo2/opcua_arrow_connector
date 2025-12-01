@@ -3,10 +3,9 @@ package com.opcua_arrow.loop;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.google.inject.Inject;
-import com.opcua_arrow.context.RunningState;
+import com.opcua_arrow.RunningState;
 import com.opcua_arrow.data.DataPoint;
 import com.opcua_arrow.data.DataReadGroup;
-import com.opcua_arrow.di.FactoryModule.ReadTaskFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,11 +15,11 @@ public class LoopReader implements ILoop {
     private static final Logger logger = LoggerFactory.getLogger(LoopReader.class);
     // private final ReadTaskRegistry readTaskRegistry;
     private final ConcurrentHashMap<DataReadGroup, IReaderTask> readerMap = new ConcurrentHashMap<>();
-    private final ReadTaskFactory factory;
+    private final IReadTaskFactory factory;
     private final RunningState runningState;
 
     @Inject
-    public LoopReader(ReadTaskFactory factory, RunningState runningState) {
+    public LoopReader(IReadTaskFactory factory, RunningState runningState) {
         // this.readTaskRegistry = readTaskRegistry;
         this.factory = factory;
         this.runningState = runningState;
@@ -37,9 +36,8 @@ public class LoopReader implements ILoop {
 
         reader.addDataPoint(dataPoint);
 
-        if (created[0] && runningState.isRunning()) {
+        if (created[0] && runningState.isRunning())
             reader.start();
-        }
     }
 
     @Override
@@ -57,15 +55,13 @@ public class LoopReader implements ILoop {
 
     @Override
     public void start() {
-        for (IReaderTask readTask : readerMap.values()) {
+        for (IReaderTask readTask : readerMap.values())
             readTask.start();
-        }
     }
 
     @Override
     public void stop() {
-        for (IReaderTask readTask : readerMap.values()) {
+        for (IReaderTask readTask : readerMap.values())
             readTask.stop();
-        }
     }
 }

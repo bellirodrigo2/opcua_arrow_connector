@@ -147,15 +147,19 @@ public class MiloOPCUAReader implements IReader {
                         DataValue[] results = response.getResults();
                         int n = results.length;
                         List<TSValue> values = new ArrayList<>(n);
+                        try {
 
-                        for (int i = 0; i < n; i++) {
-                            DataPoint dp = ids.get(i);
-                            TSValue tsValue = TSValueFactory.createTSValue(dp, results[i]);
-                            if (tsValue.isConsistent() && dp.getEquals().isEqual(tsValue.value, tsValue.isGood)) {
-                                values.add(tsValue);
+                            for (int i = 0; i < n; i++) {
+                                DataPoint dp = ids.get(i);
+                                TSValue tsValue = TSValueFactory.createTSValue(dp, results[i]);
+                                if (tsValue.isConsistent() && dp.getEquals().isEqual(tsValue.value, tsValue.isGood)) {
+                                    values.add(tsValue);
+                                }
                             }
+                            return values;
+                        } catch (Exception e) {
+                            throw new RuntimeException("Error processing read results", e);
                         }
-                        return values;
                     });
 
         } finally {
