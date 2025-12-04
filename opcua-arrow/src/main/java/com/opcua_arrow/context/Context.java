@@ -13,9 +13,13 @@ import com.opcua_arrow.data.DataReadGroup;
 import com.opcua_arrow.data.DataWriteGroup;
 import com.opcua_arrow.loop.ILoop;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Singleton
 public class Context implements IContext {
 
+    private static final Logger logger = LoggerFactory.getLogger(Context.class);
     private final Map<String, DataPoint> paramsMap;
     private final ILoop reader;
     private final ILoop writer;
@@ -48,6 +52,7 @@ public class Context implements IContext {
         DataReadGroup newReadGroup = params.getReadGroup();
 
         if (existing == null) {
+            logger.info("Adding new DataPoint with nodeId {}", nodeId);
             paramsMap.put(nodeId, params);
             writer.addDataPoint(params);
             reader.addDataPoint(params);
@@ -56,12 +61,18 @@ public class Context implements IContext {
 
         DataWriteGroup existingWriteGroup = existing.getWriteGroup();
         if (!existingWriteGroup.equals(newWriteGroup)) {
-            if (existingWriteGroup.getDataType() != newWriteGroup.getDataType())
-                throw new IllegalArgumentException("Cannot change data type of existing DataWriteGroup");
-
-            writer.addDataPoint(params);
-            if (DataWriteGroupCount(existingWriteGroup) == 1) {
-                writer.removeDataPoint(existing);
+            if (existingWriteGroup.getDataType() != newWriteGroup.getDataType()) {
+                logger.error("Data type change detected for nodeId {}: existing={}, new={}",
+                        nodeId,
+                        existingWriteGroup.getDataType(),
+                        newWriteGroup.getDataType());
+                // throw new IllegalArgumentException("Cannot change data type of existing
+                // DataWriteGroup");
+            } else {
+                writer.addDataPoint(params);
+                if (DataWriteGroupCount(existingWriteGroup) == 1) {
+                    writer.removeDataPoint(existing);
+                }
             }
         }
 
@@ -75,6 +86,7 @@ public class Context implements IContext {
     public void delete(String nodeId) {
         DataPoint existing = paramsMap.remove(nodeId);
         if (existing != null) {
+            logger.info("Removing DataPoint with nodeId {}", nodeId);
             reader.removeDataPoint(existing);
             DataWriteGroup writeGroup = existing.getWriteGroup();
             if (!hasDataWriteGroup(writeGroup))

@@ -118,8 +118,10 @@ public class ReadTask implements IReaderTask {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             logger.error("Interrupted while pushing to queue", e);
+            ac.markFailure(e);
         } catch (Exception e) {
             logger.error("Read error for {} data points", snapshot.size(), e);
+            ac.markFailure(e);
         } finally {
             ac.close();
         }

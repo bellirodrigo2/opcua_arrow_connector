@@ -86,21 +86,24 @@ public class LoopWriter implements ILoop {
                     reusableDataMap.values().forEach(List::clear);
 
                     // Group TSValue by write group
-                    for (List<TSValue> data : reusableDataList) {
-                        for (TSValue tsValue : data) {
+                    for (List<TSValue> data : reusableDataList)
+                        for (TSValue tsValue : data)
                             reusableDataMap
                                     .computeIfAbsent(tsValue.writeGroup, k -> new ArrayList<>())
                                     .add(tsValue);
-                        }
-                    }
-
+                    // Add Key Value pairs to the callback ??
                     internalWrite(reusableDataMap);
-
+                } catch (Exception e) {
+                    logger.error("Error in LoopWriter loop: ", e);
+                    ac.markFailure(e);
+                    throw e;
                 } finally {
                     ac.close();
                 }
             }
-        } catch (InterruptedException e) {
+        } catch (
+
+        InterruptedException e) {
             Thread.currentThread().interrupt();
         }
     }

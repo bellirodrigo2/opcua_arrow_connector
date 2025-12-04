@@ -102,6 +102,8 @@ public class MiloOPCUASubscription implements ISubscriber {
                 newSubscription.setSubscriptionListener(dataReadGroup.getReadMode() == EReadMode.EVENTS
                         ? createEventNotificationListener(batchHandler, dataReadGroup.getInterval())
                         : createDataNotificationListener(batchHandler, dataReadGroup.getInterval()));
+
+                newSubscription.create();
                 return newSubscription;
             } catch (Exception e) {
                 throw new RuntimeException(e);
@@ -146,6 +148,7 @@ public class MiloOPCUASubscription implements ISubscriber {
                     }
                 } catch (Exception e) {
                     logger.error("Error in batch handler: " + e.getMessage());
+                    ac.markFailure(e);
                 } finally {
                     ac.close();
                 }
