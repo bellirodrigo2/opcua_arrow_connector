@@ -37,6 +37,8 @@ public class BaseArrowBufferBuilder implements IBufferBuilder {
     protected int capacity;
     protected int count;
 
+    private final ReusableByteArrayOutputStream baos;
+
     public BaseArrowBufferBuilder(
             Schema schema,
             int initialCapacity,
@@ -49,6 +51,7 @@ public class BaseArrowBufferBuilder implements IBufferBuilder {
         this.compress = compress;
         this.valueColumn = valueColumn;
         allocateVectors(initialCapacity);
+        this.baos = new ReusableByteArrayOutputStream(initialCapacity * 128);
     }
 
     public BaseArrowBufferBuilder(
@@ -137,11 +140,6 @@ public class BaseArrowBufferBuilder implements IBufferBuilder {
         capacity = newCapacity;
     }
 
-    // @Override
-    // public void emitBatch() throws Exception {
-    // Implement the logic to emit the batch if needed
-    // }
-
     @Override
     public void appendList(List<TSValue> dataValues) {
         ensureCapacityLocked(dataValues.size());
@@ -185,24 +183,24 @@ public class BaseArrowBufferBuilder implements IBufferBuilder {
         try {
             root.setRowCount(count);
 
-            byte[] ipcBytes;
-            try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                    ArrowStreamWriter writer = new ArrowStreamWriter(
-                            root,
-                            null,
-                            Channels.newChannel(baos))) {
+            baos.reset();
+
+            try (ArrowStreamWriter writer = new ArrowStreamWriter(
+                    root,
+                    null,
+                    Channels.newChannel(baos))) {
 
                 writer.start();
                 writer.writeBatch();
                 writer.end();
-
-                ipcBytes = baos.toByteArray();
-                return compress ? gzip(ipcBytes) : ipcBytes;
-
-            } catch (IOException e) {
-                throw new RuntimeException("Erro ao serializar Arrow batch para IPC stream", e);
             }
 
+            byte[] ipcBytes = baos.toByteArraySafe();
+
+            return compress ? gzip(ipcBytes) : ipcBytes;
+
+        } catch (IOException e) {
+            throw new RuntimeException("Erro ao serializar Arrow batch para IPC stream", e);
         } finally {
             count = 0;
             root.setRowCount(0);
@@ -239,6 +237,17 @@ public class BaseArrowBufferBuilder implements IBufferBuilder {
         } finally {
             root = null;
             allocator.close(); // sempre executa
+        }
+    }
+
+    private class ReusableByteArrayOutputStream extends ByteArrayOutputStream {
+
+        public ReusableByteArrayOutputStream(int initialSize) {
+            super(initialSize);
+        }
+
+        public byte[] toByteArraySafe() {
+            return java.util.Arrays.copyOf(buf, count);
         }
     }
 }
