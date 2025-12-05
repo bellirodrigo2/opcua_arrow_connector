@@ -1,5 +1,7 @@
 package com.opcua_arrow.batch_builder.arrow;
 
+import java.util.Map;
+
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.types.pojo.Schema;
 
@@ -27,8 +29,9 @@ public class AcumBatchArrowBuilder extends BaseArrowBufferBuilder {
             boolean compress,
             IValueColumn valueColumn,
             int minBatchSize,
-            long minFlushIntervalNanos) {
-        super(initialCapacity, compress, valueColumn);
+            long minFlushIntervalNanos,
+            Map<String, String> metadata) {
+        super(initialCapacity, compress, valueColumn, metadata);
         this.minBatchSize = minBatchSize;
         this.minFlushIntervalNanos = minFlushIntervalNanos;
     }

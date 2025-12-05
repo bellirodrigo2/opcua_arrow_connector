@@ -10,6 +10,10 @@ public class DataWriteGroup {
         this.pointIdRange = pointIdRange;
     }
 
+    public String toString() {
+        return "DataWriteGroup{dataType=" + dataType + ", pointIdRange=" + pointIdRange + "}";
+    }
+
     public EDataType getDataType() {
         return dataType;
     }

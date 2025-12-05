@@ -1,27 +1,27 @@
 package com.opcua_arrow.config;
 
 import java.time.Duration;
+import java.util.Map;
 
 /**
  * Configuration for PostgreSQL database connection and settings
  */
 public class PostgreSQLConfig {
-    private String jdbcUrl = "jdbc:postgresql://localhost:5432/opcua_arrow";
-    private String username = "postgres";
-    private String password = "password";
-    private String driverClassName = "org.postgresql.Driver";
+    private String jdbcUrl;
+    private String username;
+    private String password;
+    private String driverClassName;
 
     // Connection pool settings
-    private int maxPoolSize = 10;
-    private int minPoolSize = 2;
-    private Duration connectionTimeout = Duration.ofSeconds(30);
-    private Duration idleTimeout = Duration.ofMinutes(10);
-    private Duration maxLifetime = Duration.ofMinutes(30);
-
+    private int maxPoolSize;
+    private int minPoolSize;
+    private Duration connectionTimeout;
+    private Duration idleTimeout;
+    private Duration maxLifetime;
     // Query settings
-    private Duration queryTimeout = Duration.ofSeconds(30);
-    private boolean autoCommit = true;
-    private String transactionIsolation = "READ_COMMITTED";
+    private Duration queryTimeout;
+    private boolean autoCommit;
+    private String transactionIsolation;
 
     // Getters and Setters
 
@@ -133,75 +133,8 @@ public class PostgreSQLConfig {
         return this;
     }
 
-    /**
-     * Create configuration from environment variables
-     */
-    public static PostgreSQLConfig fromEnvironment() {
-        PostgreSQLConfig config = new PostgreSQLConfig();
-
-        // Database connection
-        String jdbcUrl = System.getenv("DB_JDBC_URL");
-        if (jdbcUrl != null)
-            config.setJdbcUrl(jdbcUrl);
-
-        String username = System.getenv("DB_USERNAME");
-        if (username != null)
-            config.setUsername(username);
-
-        String password = System.getenv("DB_PASSWORD");
-        if (password != null)
-            config.setPassword(password);
-
-        // Connection pool
-        String maxPoolSize = System.getenv("DB_MAX_POOL_SIZE");
-        if (maxPoolSize != null)
-            config.setMaxPoolSize(Integer.parseInt(maxPoolSize));
-
-        String minPoolSize = System.getenv("DB_MIN_POOL_SIZE");
-        if (minPoolSize != null)
-            config.setMinPoolSize(Integer.parseInt(minPoolSize));
-
-        String connectionTimeout = System.getenv("DB_CONNECTION_TIMEOUT_SECONDS");
-        if (connectionTimeout != null) {
-            config.setConnectionTimeout(Duration.ofSeconds(Long.parseLong(connectionTimeout)));
-        }
-
-        // Query settings
-        String queryTimeout = System.getenv("DB_QUERY_TIMEOUT_SECONDS");
-        if (queryTimeout != null) {
-            config.setQueryTimeout(Duration.ofSeconds(Long.parseLong(queryTimeout)));
-        }
-
-        String autoCommit = System.getenv("DB_AUTO_COMMIT");
-        if (autoCommit != null)
-            config.setAutoCommit(Boolean.parseBoolean(autoCommit));
-
-        String transactionIsolation = System.getenv("DB_TRANSACTION_ISOLATION");
-        if (transactionIsolation != null)
-            config.setTransactionIsolation(transactionIsolation);
-
-        return config;
-    }
-
-    /**
-     * Validate configuration
-     */
-    public void validate() {
-        if (jdbcUrl == null || jdbcUrl.trim().isEmpty()) {
-            throw new IllegalArgumentException("JDBC URL is required");
-        }
-        if (username == null || username.trim().isEmpty()) {
-            throw new IllegalArgumentException("Username is required");
-        }
-        if (password == null) {
-            throw new IllegalArgumentException("Password is required (can be empty)");
-        }
-        if (maxPoolSize <= 0) {
-            throw new IllegalArgumentException("Max pool size must be positive");
-        }
-        if (minPoolSize < 0 || minPoolSize > maxPoolSize) {
-            throw new IllegalArgumentException("Min pool size must be between 0 and max pool size");
-        }
+    public static PostgreSQLConfig fromMap(Map<String, String> configMap) {
+        return new PostgreSQLConfig();
     }
 
     @Override

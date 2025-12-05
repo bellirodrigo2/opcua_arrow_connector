@@ -1,6 +1,12 @@
 package com.opcua_arrow.batch_builder.arrow;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.HashMap;
 
 import org.apache.arrow.vector.types.FloatingPointPrecision;
 import org.apache.arrow.vector.types.TimeUnit;
@@ -14,7 +20,7 @@ class SchemaUtilsTest {
     @Test
     void testCreateSchema_Double() {
         // When
-        Schema schema = SchemaUtils.createSchema(Double.class);
+        Schema schema = SchemaUtils.createSchema(Double.class, new HashMap<>());
 
         // Then
         assertNotNull(schema);
@@ -36,7 +42,7 @@ class SchemaUtilsTest {
     @Test
     void testCreateSchema_Boolean() {
         // When
-        Schema schema = SchemaUtils.createSchema(Boolean.class);
+        Schema schema = SchemaUtils.createSchema(Boolean.class, new HashMap<>());
 
         // Then
         assertNotNull(schema);
@@ -47,7 +53,7 @@ class SchemaUtilsTest {
     @Test
     void testCreateSchema_String() {
         // When
-        Schema schema = SchemaUtils.createSchema(String.class);
+        Schema schema = SchemaUtils.createSchema(String.class, new HashMap<>());
 
         // Then
         assertNotNull(schema);
@@ -58,7 +64,7 @@ class SchemaUtilsTest {
     @Test
     void testCreateSchema_Integer() {
         // When
-        Schema schema = SchemaUtils.createSchema(Integer.class);
+        Schema schema = SchemaUtils.createSchema(Integer.class, new HashMap<>());
 
         // Then
         assertNotNull(schema);
@@ -72,7 +78,7 @@ class SchemaUtilsTest {
     @Test
     void testCreateSchema_Long() {
         // When
-        Schema schema = SchemaUtils.createSchema(Long.class);
+        Schema schema = SchemaUtils.createSchema(Long.class, new HashMap<>());
 
         // Then
         assertNotNull(schema);
@@ -86,7 +92,7 @@ class SchemaUtilsTest {
     @Test
     void testCreateSchema_Float() {
         // When
-        Schema schema = SchemaUtils.createSchema(Float.class);
+        Schema schema = SchemaUtils.createSchema(Float.class, new HashMap<>());
 
         // Then
         assertNotNull(schema);
@@ -99,7 +105,7 @@ class SchemaUtilsTest {
     @Test
     void testCreateSchema_DoubleArray() {
         // When
-        Schema schema = SchemaUtils.createSchema(Double[].class);
+        Schema schema = SchemaUtils.createSchema(Double[].class, new HashMap<>());
 
         // Then
         assertNotNull(schema);
@@ -121,7 +127,7 @@ class SchemaUtilsTest {
     @Test
     void testCreateSchema_BooleanArray() {
         // When
-        Schema schema = SchemaUtils.createSchema(Boolean[].class);
+        Schema schema = SchemaUtils.createSchema(Boolean[].class, new HashMap<>());
 
         // Then
         assertNotNull(schema);
@@ -135,7 +141,7 @@ class SchemaUtilsTest {
     @Test
     void testCreateSchema_IntegerArray() {
         // When
-        Schema schema = SchemaUtils.createSchema(Integer[].class);
+        Schema schema = SchemaUtils.createSchema(Integer[].class, new HashMap<>());
 
         // Then
         assertNotNull(schema);
@@ -149,7 +155,7 @@ class SchemaUtilsTest {
     @Test
     void testCreateSchema_PointIdField() {
         // When
-        Schema schema = SchemaUtils.createSchema(Double.class);
+        Schema schema = SchemaUtils.createSchema(Double.class, new HashMap<>());
 
         // Then
         Field pointIdField = schema.getFields().get(0);
@@ -163,7 +169,7 @@ class SchemaUtilsTest {
     @Test
     void testCreateSchema_TimestampField() {
         // When
-        Schema schema = SchemaUtils.createSchema(Double.class);
+        Schema schema = SchemaUtils.createSchema(Double.class, new HashMap<>());
 
         // Then
         Field timestampField = schema.getFields().get(1);
@@ -179,7 +185,7 @@ class SchemaUtilsTest {
     @Test
     void testCreateSchema_StatusCodeField() {
         // When
-        Schema schema = SchemaUtils.createSchema(Double.class);
+        Schema schema = SchemaUtils.createSchema(Double.class, new HashMap<>());
 
         // Then
         Field statusCodeField = schema.getFields().get(3);
@@ -191,7 +197,7 @@ class SchemaUtilsTest {
     @Test
     void testCreateSchema_ValueField_IsNullable() {
         // When
-        Schema schema = SchemaUtils.createSchema(Double.class);
+        Schema schema = SchemaUtils.createSchema(Double.class, new HashMap<>());
 
         // Then
         Field valueField = schema.getFields().get(2);
@@ -201,7 +207,7 @@ class SchemaUtilsTest {
     @Test
     void testCreateSchema_ArrayValueField_IsNullable() {
         // When
-        Schema schema = SchemaUtils.createSchema(Double[].class);
+        Schema schema = SchemaUtils.createSchema(Double[].class, new HashMap<>());
 
         // Then
         Field valueField = schema.getFields().get(2);
@@ -212,7 +218,7 @@ class SchemaUtilsTest {
     void testCreateSchema_UnsupportedType() {
         // When/Then
         assertThrows(IllegalArgumentException.class, () -> {
-            SchemaUtils.createSchema(Object.class);
+            SchemaUtils.createSchema(Object.class, new HashMap<>());
         });
     }
 
@@ -220,7 +226,7 @@ class SchemaUtilsTest {
     void testCreateSchema_UnsupportedArrayType() {
         // When/Then
         assertThrows(IllegalArgumentException.class, () -> {
-            SchemaUtils.createSchema(Object[].class);
+            SchemaUtils.createSchema(Object[].class, new HashMap<>());
         });
     }
 
@@ -247,7 +253,7 @@ class SchemaUtilsTest {
     @Test
     void testCreateSchema_PrimitiveInt() {
         // When
-        Schema schema = SchemaUtils.createSchema(int.class);
+        Schema schema = SchemaUtils.createSchema(int.class, new HashMap<>());
 
         // Then
         assertNotNull(schema);
@@ -260,7 +266,7 @@ class SchemaUtilsTest {
     @Test
     void testCreateSchema_PrimitiveLong() {
         // When
-        Schema schema = SchemaUtils.createSchema(long.class);
+        Schema schema = SchemaUtils.createSchema(long.class, new HashMap<>());
 
         // Then
         assertNotNull(schema);
@@ -273,7 +279,7 @@ class SchemaUtilsTest {
     @Test
     void testCreateSchema_PrimitiveDouble() {
         // When
-        Schema schema = SchemaUtils.createSchema(double.class);
+        Schema schema = SchemaUtils.createSchema(double.class, new HashMap<>());
 
         // Then
         assertNotNull(schema);
@@ -284,7 +290,7 @@ class SchemaUtilsTest {
     @Test
     void testCreateSchema_PrimitiveBoolean() {
         // When
-        Schema schema = SchemaUtils.createSchema(boolean.class);
+        Schema schema = SchemaUtils.createSchema(boolean.class, new HashMap<>());
 
         // Then
         assertNotNull(schema);
@@ -295,7 +301,7 @@ class SchemaUtilsTest {
     @Test
     void testCreateSchema_PrimitiveFloat() {
         // When
-        Schema schema = SchemaUtils.createSchema(float.class);
+        Schema schema = SchemaUtils.createSchema(float.class, new HashMap<>());
 
         // Then
         assertNotNull(schema);
@@ -308,7 +314,7 @@ class SchemaUtilsTest {
     @Test
     void testCreateSchema_FieldOrder() {
         // When
-        Schema schema = SchemaUtils.createSchema(String.class);
+        Schema schema = SchemaUtils.createSchema(String.class, new HashMap<>());
 
         // Then: verify exact field order
         assertEquals("pointid", schema.getFields().get(0).getName());

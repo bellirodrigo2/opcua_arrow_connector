@@ -19,11 +19,11 @@
             <version>${milo.version}</version>
         </dependency>
 
-        <dependency>
+        <!-- <dependency>
             <groupId>org.eclipse.milo</groupId>
             <artifactId>milo-encoding-json</artifactId>
             <version>${milo.version}</version>
-        </dependency>
+        </dependency> -->
 
         <!-- Arrow -->
         <dependency>
@@ -37,6 +37,12 @@
             <artifactId>arrow-memory-netty</artifactId>
             <version>${arrow.version}</version>
         </dependency>
+
+        <!-- <dependency>
+            <groupId>org.apache.arrow</groupId>
+            <artifactId>arrow-c-data</artifactId>
+            <version>${arrow.version}</version>
+        </dependency> -->
 
         <!-- Resilience4J -->
         <dependency>

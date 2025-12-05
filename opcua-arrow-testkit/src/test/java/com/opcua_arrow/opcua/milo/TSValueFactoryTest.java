@@ -182,7 +182,8 @@ class TSValueFactoryTest {
 
     @Test
     void testTimestampReturnsNegativeOneWhenNullDateTime() {
-        DataValue dataValue = new DataValue(new Variant(300), StatusCode.GOOD, DateTime.NULL_VALUE, DateTime.NULL_VALUE);
+        DataValue dataValue = new DataValue(new Variant(300), StatusCode.GOOD, DateTime.NULL_VALUE,
+                DateTime.NULL_VALUE);
 
         TSValue result = TSValueFactory.createTSValue(testDataPoint, dataValue);
 
@@ -202,7 +203,8 @@ class TSValueFactoryTest {
 
         TSValue result = TSValueFactory.createTSValue(testDataPoint, dataValue);
 
-        // DateTime 0 in OPC-UA is not Unix epoch 0, so timestamp might be negative or different
+        // DateTime 0 in OPC-UA is not Unix epoch 0, so timestamp might be negative or
+        // different
         // The important thing is it's consistent
         assertTrue(result.isConsistent() || result.timestamp == -1L);
     }

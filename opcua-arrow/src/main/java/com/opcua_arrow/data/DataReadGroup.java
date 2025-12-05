@@ -16,6 +16,10 @@ public class DataReadGroup {
     // return dataType;
     // }
 
+    public String toString() {
+        return "DataReadGroup{readMode=" + readMode + ", interval=" + interval + "}";
+    }
+
     public EReadMode getReadMode() {
         return readMode;
     }

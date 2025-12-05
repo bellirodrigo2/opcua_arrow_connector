@@ -91,6 +91,12 @@ public class ExampleNamespace extends ManagedNamespaceWithLifecycle {
 
   private final SubscriptionModel subscriptionModel;
 
+  // Subscription test node references (used by AttributeFilters for dynamic values)
+  private UaVariableNode subscriptionTestInt32Node;
+  private UaVariableNode subscriptionTestDoubleNode;
+  private UaVariableNode subscriptionTestBooleanNode;
+  private UaVariableNode subscriptionTestStringNode;
+
   ExampleNamespace(OpcUaServer server) {
     super(server, NAMESPACE_URI);
 
@@ -112,8 +118,10 @@ public class ExampleNamespace extends ManagedNamespaceWithLifecycle {
               public void shutdown() {
                 try {
                   keepPostingEvents = false;
-                  eventThread.interrupt();
-                  eventThread.join();
+                  if (eventThread != null) {
+                    eventThread.interrupt();
+                    eventThread.join();
+                  }
                 } catch (InterruptedException ignored) {
                   // ignored
                 }
@@ -241,6 +249,7 @@ public class ExampleNamespace extends ManagedNamespaceWithLifecycle {
     addDynamicNodes(rootNode);
     addDataAccessNodes(rootNode);
     addWriteOnlyNodes(rootNode);
+    addSubscriptionTestNodes(rootNode);
   }
 
   private void addArrayNodes(UaFolderNode rootNode) {
@@ -350,6 +359,128 @@ public class ExampleNamespace extends ManagedNamespaceWithLifecycle {
 
     getNodeManager().addNode(node);
     writeOnlyFolder.addOrganizes(node);
+  }
+
+  private void addSubscriptionTestNodes(UaFolderNode rootNode) {
+    // Create a folder for subscription test nodes
+    // These nodes use AttributeFilters to return changing values on each read,
+    // which triggers the SubscriptionModel to send data change notifications.
+    UaFolderNode subscriptionTestFolder = new UaFolderNode(
+        getNodeContext(),
+        newNodeId("HelloWorld/SubscriptionTest"),
+        newQualifiedName("SubscriptionTest"),
+        LocalizedText.english("SubscriptionTest"));
+
+    getNodeManager().addNode(subscriptionTestFolder);
+    rootNode.addOrganizes(subscriptionTestFolder);
+
+    // Shared counters for generating changing values
+    final int[] intCounter = {0};
+    final boolean[] boolToggle = {false};
+
+    // Int32 test node - returns incrementing counter
+    {
+      String name = "Int32";
+      subscriptionTestInt32Node = new UaVariableNode.UaVariableNodeBuilder(getNodeContext())
+          .setNodeId(newNodeId("HelloWorld/SubscriptionTest/" + name))
+          .setAccessLevel(AccessLevel.READ_WRITE)
+          .setUserAccessLevel(AccessLevel.READ_WRITE)
+          .setBrowseName(newQualifiedName(name))
+          .setDisplayName(LocalizedText.english(name))
+          .setDataType(NodeIds.Int32)
+          .setTypeDefinition(NodeIds.BaseDataVariableType)
+          .build();
+
+      subscriptionTestInt32Node.setValue(new DataValue(new Variant(0)));
+
+      // Add filter that returns incrementing values on each read
+      subscriptionTestInt32Node.getFilterChain().addLast(
+          AttributeFilters.getValue(ctx -> {
+            intCounter[0]++;
+            return new DataValue(new Variant(intCounter[0]));
+          }));
+
+      getNodeManager().addNode(subscriptionTestInt32Node);
+      subscriptionTestFolder.addOrganizes(subscriptionTestInt32Node);
+    }
+
+    // Double test node - returns sine wave values
+    {
+      String name = "Double";
+      subscriptionTestDoubleNode = new UaVariableNode.UaVariableNodeBuilder(getNodeContext())
+          .setNodeId(newNodeId("HelloWorld/SubscriptionTest/" + name))
+          .setAccessLevel(AccessLevel.READ_WRITE)
+          .setUserAccessLevel(AccessLevel.READ_WRITE)
+          .setBrowseName(newQualifiedName(name))
+          .setDisplayName(LocalizedText.english(name))
+          .setDataType(NodeIds.Double)
+          .setTypeDefinition(NodeIds.BaseDataVariableType)
+          .build();
+
+      subscriptionTestDoubleNode.setValue(new DataValue(new Variant(0.0)));
+
+      // Add filter that returns sine wave values
+      subscriptionTestDoubleNode.getFilterChain().addLast(
+          AttributeFilters.getValue(ctx -> {
+            double value = Math.sin(intCounter[0] * 0.1) * 100.0;
+            return new DataValue(new Variant(value));
+          }));
+
+      getNodeManager().addNode(subscriptionTestDoubleNode);
+      subscriptionTestFolder.addOrganizes(subscriptionTestDoubleNode);
+    }
+
+    // Boolean test node - returns toggling values
+    {
+      String name = "Boolean";
+      subscriptionTestBooleanNode = new UaVariableNode.UaVariableNodeBuilder(getNodeContext())
+          .setNodeId(newNodeId("HelloWorld/SubscriptionTest/" + name))
+          .setAccessLevel(AccessLevel.READ_WRITE)
+          .setUserAccessLevel(AccessLevel.READ_WRITE)
+          .setBrowseName(newQualifiedName(name))
+          .setDisplayName(LocalizedText.english(name))
+          .setDataType(NodeIds.Boolean)
+          .setTypeDefinition(NodeIds.BaseDataVariableType)
+          .build();
+
+      subscriptionTestBooleanNode.setValue(new DataValue(new Variant(false)));
+
+      // Add filter that toggles boolean on each read
+      subscriptionTestBooleanNode.getFilterChain().addLast(
+          AttributeFilters.getValue(ctx -> {
+            boolToggle[0] = !boolToggle[0];
+            return new DataValue(new Variant(boolToggle[0]));
+          }));
+
+      getNodeManager().addNode(subscriptionTestBooleanNode);
+      subscriptionTestFolder.addOrganizes(subscriptionTestBooleanNode);
+    }
+
+    // String test node - returns changing string values
+    {
+      String name = "String";
+      subscriptionTestStringNode = new UaVariableNode.UaVariableNodeBuilder(getNodeContext())
+          .setNodeId(newNodeId("HelloWorld/SubscriptionTest/" + name))
+          .setAccessLevel(AccessLevel.READ_WRITE)
+          .setUserAccessLevel(AccessLevel.READ_WRITE)
+          .setBrowseName(newQualifiedName(name))
+          .setDisplayName(LocalizedText.english(name))
+          .setDataType(NodeIds.String)
+          .setTypeDefinition(NodeIds.BaseDataVariableType)
+          .build();
+
+      subscriptionTestStringNode.setValue(new DataValue(new Variant("")));
+
+      // Add filter that returns changing string values
+      subscriptionTestStringNode.getFilterChain().addLast(
+          AttributeFilters.getValue(ctx -> {
+            String value = "Update-" + intCounter[0];
+            return new DataValue(new Variant(value));
+          }));
+
+      getNodeManager().addNode(subscriptionTestStringNode);
+      subscriptionTestFolder.addOrganizes(subscriptionTestStringNode);
+    }
   }
 
   private void addAdminReadableNodes(UaFolderNode rootNode) {

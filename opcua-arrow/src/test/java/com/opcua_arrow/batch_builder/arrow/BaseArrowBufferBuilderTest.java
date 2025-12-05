@@ -1,6 +1,18 @@
 package com.opcua_arrow.batch_builder.arrow;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.zip.GZIPInputStream;
 
 import com.opcua_arrow.batch_builder.arrow.columns.DoubleValueColumn;
 import com.opcua_arrow.batch_builder.arrow.columns.IntegerValueColumn;
@@ -14,19 +26,13 @@ import org.apache.arrow.vector.ipc.ArrowStreamReader;
 import org.apache.arrow.vector.types.pojo.Schema;
 import org.junit.jupiter.api.Test;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.zip.GZIPInputStream;
-
 class BaseArrowBufferBuilderTest {
 
     @Test
     void testConstructor_CreatesVectorsCorrectly() {
         // Given
         DoubleValueColumn valueColumn = new DoubleValueColumn();
-        Schema schema = SchemaUtils.createSchema(Double.class);
+        Schema schema = SchemaUtils.createSchema(Double.class, new HashMap<>());
 
         // When
         try (BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
@@ -44,7 +50,7 @@ class BaseArrowBufferBuilderTest {
     void testAppendList_SingleValue() {
         // Given
         DoubleValueColumn valueColumn = new DoubleValueColumn();
-        Schema schema = SchemaUtils.createSchema(Double.class);
+        Schema schema = SchemaUtils.createSchema(Double.class, new HashMap<>());
         BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
 
         try (BaseArrowBufferBuilder builder = new BaseArrowBufferBuilder(
@@ -65,7 +71,7 @@ class BaseArrowBufferBuilderTest {
     void testAppendList_MultipleValues() {
         // Given
         DoubleValueColumn valueColumn = new DoubleValueColumn();
-        Schema schema = SchemaUtils.createSchema(Double.class);
+        Schema schema = SchemaUtils.createSchema(Double.class, new HashMap<>());
         BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
 
         try (BaseArrowBufferBuilder builder = new BaseArrowBufferBuilder(
@@ -88,7 +94,7 @@ class BaseArrowBufferBuilderTest {
     void testFlush_EmptyBuffer_ReturnsNull() {
         // Given
         DoubleValueColumn valueColumn = new DoubleValueColumn();
-        Schema schema = SchemaUtils.createSchema(Double.class);
+        Schema schema = SchemaUtils.createSchema(Double.class, new HashMap<>());
         BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
 
         try (BaseArrowBufferBuilder builder = new BaseArrowBufferBuilder(
@@ -106,7 +112,7 @@ class BaseArrowBufferBuilderTest {
     void testFlush_WithData_ReturnsArrowIPC() throws Exception {
         // Given
         DoubleValueColumn valueColumn = new DoubleValueColumn();
-        Schema schema = SchemaUtils.createSchema(Double.class);
+        Schema schema = SchemaUtils.createSchema(Double.class, new HashMap<>());
         BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
 
         try (BaseArrowBufferBuilder builder = new BaseArrowBufferBuilder(
@@ -144,7 +150,7 @@ class BaseArrowBufferBuilderTest {
     void testFlush_ClearsBuffer() {
         // Given
         DoubleValueColumn valueColumn = new DoubleValueColumn();
-        Schema schema = SchemaUtils.createSchema(Double.class);
+        Schema schema = SchemaUtils.createSchema(Double.class, new HashMap<>());
         BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
 
         try (BaseArrowBufferBuilder builder = new BaseArrowBufferBuilder(
@@ -167,7 +173,7 @@ class BaseArrowBufferBuilderTest {
     void testFlush_WithCompression() {
         // Given
         DoubleValueColumn valueColumn = new DoubleValueColumn();
-        Schema schema = SchemaUtils.createSchema(Double.class);
+        Schema schema = SchemaUtils.createSchema(Double.class, new HashMap<>());
         BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
 
         try (BaseArrowBufferBuilder builder = new BaseArrowBufferBuilder(
@@ -203,7 +209,7 @@ class BaseArrowBufferBuilderTest {
     void testReset_ClearsBuffer() {
         // Given
         DoubleValueColumn valueColumn = new DoubleValueColumn();
-        Schema schema = SchemaUtils.createSchema(Double.class);
+        Schema schema = SchemaUtils.createSchema(Double.class, new HashMap<>());
         BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
 
         try (BaseArrowBufferBuilder builder = new BaseArrowBufferBuilder(
@@ -226,7 +232,7 @@ class BaseArrowBufferBuilderTest {
     void testCapacityReallocation_ExceedsInitialCapacity() {
         // Given
         DoubleValueColumn valueColumn = new DoubleValueColumn();
-        Schema schema = SchemaUtils.createSchema(Double.class);
+        Schema schema = SchemaUtils.createSchema(Double.class, new HashMap<>());
         BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
 
         try (BaseArrowBufferBuilder builder = new BaseArrowBufferBuilder(
@@ -253,7 +259,7 @@ class BaseArrowBufferBuilderTest {
     void testMultipleFlushCycles() throws Exception {
         // Given
         DoubleValueColumn valueColumn = new DoubleValueColumn();
-        Schema schema = SchemaUtils.createSchema(Double.class);
+        Schema schema = SchemaUtils.createSchema(Double.class, new HashMap<>());
         BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
 
         try (BaseArrowBufferBuilder builder = new BaseArrowBufferBuilder(
@@ -292,7 +298,7 @@ class BaseArrowBufferBuilderTest {
     void testWithIntegerValues() throws Exception {
         // Given
         IntegerValueColumn valueColumn = new IntegerValueColumn();
-        Schema schema = SchemaUtils.createSchema(Integer.class);
+        Schema schema = SchemaUtils.createSchema(Integer.class, new HashMap<>());
         BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
 
         try (BaseArrowBufferBuilder builder = new BaseArrowBufferBuilder(
@@ -327,7 +333,7 @@ class BaseArrowBufferBuilderTest {
     void testWithStringValues() throws Exception {
         // Given
         StringValueColumn valueColumn = new StringValueColumn();
-        Schema schema = SchemaUtils.createSchema(String.class);
+        Schema schema = SchemaUtils.createSchema(String.class, new HashMap<>());
         BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
 
         try (BaseArrowBufferBuilder builder = new BaseArrowBufferBuilder(
@@ -362,7 +368,7 @@ class BaseArrowBufferBuilderTest {
     void testWithNullValues() throws Exception {
         // Given
         DoubleValueColumn valueColumn = new DoubleValueColumn();
-        Schema schema = SchemaUtils.createSchema(Double.class);
+        Schema schema = SchemaUtils.createSchema(Double.class, new HashMap<>());
         BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
 
         try (BaseArrowBufferBuilder builder = new BaseArrowBufferBuilder(
@@ -399,7 +405,7 @@ class BaseArrowBufferBuilderTest {
     void testStatusCodeField() throws Exception {
         // Given
         DoubleValueColumn valueColumn = new DoubleValueColumn();
-        Schema schema = SchemaUtils.createSchema(Double.class);
+        Schema schema = SchemaUtils.createSchema(Double.class, new HashMap<>());
         BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
 
         try (BaseArrowBufferBuilder builder = new BaseArrowBufferBuilder(
@@ -430,7 +436,7 @@ class BaseArrowBufferBuilderTest {
     void testPop_RemovesLastElement() {
         // Given
         DoubleValueColumn valueColumn = new DoubleValueColumn();
-        Schema schema = SchemaUtils.createSchema(Double.class);
+        Schema schema = SchemaUtils.createSchema(Double.class, new HashMap<>());
         BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
 
         try (BaseArrowBufferBuilder builder = new BaseArrowBufferBuilder(
@@ -453,7 +459,7 @@ class BaseArrowBufferBuilderTest {
     void testPop_OnEmptyBuffer_DoesNothing() {
         // Given
         DoubleValueColumn valueColumn = new DoubleValueColumn();
-        Schema schema = SchemaUtils.createSchema(Double.class);
+        Schema schema = SchemaUtils.createSchema(Double.class, new HashMap<>());
         BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
 
         try (BaseArrowBufferBuilder builder = new BaseArrowBufferBuilder(
@@ -473,7 +479,7 @@ class BaseArrowBufferBuilderTest {
     void testLargeDataSet() throws Exception {
         // Given
         DoubleValueColumn valueColumn = new DoubleValueColumn();
-        Schema schema = SchemaUtils.createSchema(Double.class);
+        Schema schema = SchemaUtils.createSchema(Double.class, new HashMap<>());
         BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
 
         try (BaseArrowBufferBuilder builder = new BaseArrowBufferBuilder(

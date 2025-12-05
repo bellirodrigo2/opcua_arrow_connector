@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.channels.Channels;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPOutputStream;
 
@@ -53,8 +54,9 @@ public class BaseArrowBufferBuilder implements IBufferBuilder {
     public BaseArrowBufferBuilder(
             int initialCapacity,
             boolean compress,
-            IValueColumn valueColumn) {
-        this(SchemaUtils.createSchema(valueColumn.getClass()), initialCapacity,
+            IValueColumn valueColumn,
+            Map<String, String> metadata) {
+        this(SchemaUtils.createSchema(valueColumn.getClass(), metadata), initialCapacity,
                 new RootAllocator(), compress, valueColumn);
     }
 
@@ -135,13 +137,16 @@ public class BaseArrowBufferBuilder implements IBufferBuilder {
         capacity = newCapacity;
     }
 
+    // @Override
+    // public void emitBatch() throws Exception {
+    // Implement the logic to emit the batch if needed
+    // }
+
     @Override
     public void appendList(List<TSValue> dataValues) {
         ensureCapacityLocked(dataValues.size());
-        for (TSValue dv : dataValues) {
-
+        for (TSValue dv : dataValues)
             append(dv.id, dv.timestamp, dv.value, dv.isGood);
-        }
 
     }
 

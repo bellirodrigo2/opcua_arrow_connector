@@ -22,7 +22,12 @@ import org.eclipse.milo.opcua.sdk.client.UaSession;
 import org.eclipse.milo.opcua.sdk.client.identity.AnonymousProvider;
 import org.eclipse.milo.opcua.sdk.client.identity.IdentityProvider;
 import org.eclipse.milo.opcua.sdk.client.identity.UsernameProvider;
+import org.eclipse.milo.opcua.stack.core.AttributeId;
+import org.eclipse.milo.opcua.stack.core.Identifiers;
+import org.eclipse.milo.opcua.stack.core.types.builtin.QualifiedName;
+import org.eclipse.milo.opcua.stack.core.types.enumerated.TimestampsToReturn;
 import org.eclipse.milo.opcua.stack.core.types.structured.EndpointDescription;
+import org.eclipse.milo.opcua.stack.core.types.structured.ReadValueId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -169,7 +174,14 @@ public class MiloOPCUAConnection {
             }
 
             // Read server status to keep connection alive
-            client.disconnectAsync().get(5, TimeUnit.SECONDS);
+            ReadValueId readValueId = new ReadValueId(
+                    Identifiers.Server_ServerStatus,
+                    AttributeId.Value.uid(),
+                    null,
+                    QualifiedName.NULL_VALUE);
+
+            client.readAsync(0.0, TimestampsToReturn.Neither, List.of(readValueId))
+                    .get(5, TimeUnit.SECONDS);
 
         } catch (Exception e) {
             logger.warn("Keep-alive ping failed: {}", e.getMessage());

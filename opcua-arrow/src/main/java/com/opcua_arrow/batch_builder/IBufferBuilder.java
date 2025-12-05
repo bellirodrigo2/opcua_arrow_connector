@@ -6,22 +6,11 @@ import com.opcua_arrow.data.TSValue;
 
 public interface IBufferBuilder extends AutoCloseable {
 
-    /** Add one registry */
     void appendList(List<TSValue> dataValues);
 
-    // void pop();
-
-    /** Serialize the current batch to Arrow IPC and clean the buffer */
     byte[] flush();
 
-    /** Register size */
-    // int size();
-
-    /** Current capacity */
-    // int capacity();
-
-    /** Clean the counter */
-    // void reset();
+    // void emitBatch() throws Exception;
 
     @Override
     void close();

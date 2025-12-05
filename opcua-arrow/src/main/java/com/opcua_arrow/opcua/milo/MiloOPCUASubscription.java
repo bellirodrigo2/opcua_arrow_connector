@@ -18,11 +18,8 @@ import com.opcua_arrow.read.ISubscriber;
 import org.eclipse.milo.opcua.sdk.client.subscriptions.OpcUaMonitoredItem;
 import org.eclipse.milo.opcua.sdk.client.subscriptions.OpcUaSubscription;
 import org.eclipse.milo.opcua.sdk.client.subscriptions.OpcUaSubscription.SubscriptionListener;
-import org.eclipse.milo.opcua.stack.core.encoding.EncodingContext;
 import org.eclipse.milo.opcua.stack.core.types.builtin.DataValue;
 import org.eclipse.milo.opcua.stack.core.types.builtin.NodeId;
-import org.eclipse.milo.opcua.stack.core.types.builtin.Variant;
-import org.eclipse.milo.opcua.stack.core.types.structured.EventFieldList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,17 +48,49 @@ public class MiloOPCUASubscription implements ISubscriber {
             List<DataPoint> dataPoints,
             Consumer<List<TSValue>> batchHandler) {
 
+        if (dataReadGroup.getReadMode() != EReadMode.SUBSCRIBE
+        // && dataReadGroup.getReadMode() != EReadMode.EVENTS
+        ) {
+            logger.error("addNodesToSubscription called with unsupported read mode: " + dataReadGroup.getReadMode());
+            return;
+        }
+
+        logger.info("addNodesToSubscription called with {} data points", dataPoints.size());
         for (int i = 0; i < dataPoints.size(); i++) {
-            nodeIdToPointIdMap.putIfAbsent(dataPoints.get(i).getNodeId(), dataPoints.get(i));
+            String nodeId = dataPoints.get(i).getNodeId();
+            logger.info("Adding to map: {} -> point id {}", nodeId, dataPoints.get(i).getPointId());
+            nodeIdToPointIdMap.putIfAbsent(nodeId, dataPoints.get(i));
         }
 
         OpcUaSubscription subscription = getOrCreateSubscription(dataReadGroup, batchHandler);
+        logger.info("Got subscription with publishing interval: {}ms", subscription.getPublishingInterval());
 
         List<OpcUaMonitoredItem> monitoredItems = dataPoints.stream()
-                .map(dp -> OpcUaMonitoredItem.newDataItem(NodeId.parse(dp.getNodeId())))
+                .map(dp -> {
+                    NodeId parsedNodeId = NodeId.parse(dp.getNodeId());
+                    logger.info("Creating monitored item for nodeId: {} -> parsed as: {}", dp.getNodeId(),
+                            parsedNodeId);
+                    OpcUaMonitoredItem item = OpcUaMonitoredItem.newDataItem(parsedNodeId);
+                    // Set the sampling interval to match the subscription's publishing interval
+                    item.setSamplingInterval((double) dataReadGroup.getInterval());
+                    return item;
+                })
                 .collect(Collectors.toList());
 
+        logger.info("Adding {} monitored items to subscription (locally)", monitoredItems.size());
         subscription.addMonitoredItems(monitoredItems);
+
+        logger.info("Creating monitored items on server via createMonitoredItems()");
+        try {
+            // createMonitoredItems() sends CreateMonitoredItemsRequest to the server
+            // for all items with SyncState.INITIAL
+            subscription.createMonitoredItems();
+            logger.info("Monitored items created successfully. Total items in subscription: {}",
+                    subscription.getMonitoredItems().size());
+        } catch (Exception e) {
+            logger.error("Failed to create monitored items on server", e);
+            throw new RuntimeException("Failed to create monitored items on server", e);
+        }
     }
 
     @Override
@@ -99,9 +128,11 @@ public class MiloOPCUASubscription implements ISubscriber {
                 Double interval = (double) i.getInterval();
                 newSubscription.setPublishingInterval(interval);
 
-                newSubscription.setSubscriptionListener(dataReadGroup.getReadMode() == EReadMode.EVENTS
-                        ? createEventNotificationListener(batchHandler, dataReadGroup.getInterval())
-                        : createDataNotificationListener(batchHandler, dataReadGroup.getInterval()));
+                newSubscription.setSubscriptionListener(
+                        createDataNotificationListener(batchHandler, dataReadGroup.getInterval()));
+                // dataReadGroup.getReadMode() == EReadMode.EVENTS
+                // ? createEventNotificationListener(batchHandler, dataReadGroup.getInterval())
+                // : createDataNotificationListener(batchHandler, dataReadGroup.getInterval()));
 
                 newSubscription.create();
                 return newSubscription;
@@ -127,27 +158,39 @@ public class MiloOPCUASubscription implements ISubscriber {
                     List<OpcUaMonitoredItem> monitoredItems,
                     List<DataValue> dataValues) {
 
+                logger.info("onDataReceived called with {} items and {} values", monitoredItems.size(),
+                        dataValues.size());
                 ICallBackObject ac = callBack.startCallback(getLabel(), monitoredItems);
                 try {
                     List<TSValue> values = new ArrayList<>();
                     for (int i = 0; i < monitoredItems.size(); i++) {
-                        DataPoint dp = nodeIdToPointIdMap
-                                .get(monitoredItems.get(i).getReadValueId().getNodeId().toString());
+                        String nodeIdStr = monitoredItems.get(i).getReadValueId().getNodeId().toParseableString();
+                        logger.info("Looking up nodeId: {} in map with {} entries", nodeIdStr,
+                                nodeIdToPointIdMap.size());
+                        logger.info("Map keys: {}", nodeIdToPointIdMap.keySet());
+
+                        DataPoint dp = nodeIdToPointIdMap.get(nodeIdStr);
                         if (dp == null) {
-                            logger.debug("Skipping data change for unknown nodeId: " +
-                                    monitoredItems.get(i).getReadValueId().getNodeId().toString());
+                            logger.warn("Skipping data change for unknown nodeId: {}", nodeIdStr);
                             continue;
                         }
+                        logger.info("Found DataPoint for {}, creating TSValue", nodeIdStr);
                         TSValue tsValue = TSValueFactory.createTSValue(dp, dataValues.get(i));
+                        logger.info("TSValue: id={}, value={}, isGood={}, isConsistent={}",
+                                tsValue.id, tsValue.value, tsValue.isGood, tsValue.isConsistent());
                         if (tsValue.isConsistent() && dp.getEquals().isEqual(tsValue.value, tsValue.isGood)) {
+                            logger.info("Adding TSValue to results");
                             values.add(tsValue);
+                        } else {
+                            logger.info("TSValue filtered out by equals check");
                         }
                     }
+                    logger.info("Calling batchHandler with {} values", values.size());
                     if (!values.isEmpty()) {
                         batchHandler.accept(values);
                     }
                 } catch (Exception e) {
-                    logger.error("Error in batch handler: " + e.getMessage());
+                    logger.error("Error in batch handler: " + e.getMessage(), e);
                     ac.markFailure(e);
                 } finally {
                     ac.close();
@@ -157,67 +200,70 @@ public class MiloOPCUASubscription implements ISubscriber {
 
     }
 
-    private SubscriptionListener createEventNotificationListener(Consumer<List<TSValue>> batchHandler, Long interval) {
-        return new SubscriptionListener() {
-            private String getLabel() {
-                return "subscription_events_" + interval + "_ms";
-            }
+    // private SubscriptionListener
+    // createEventNotificationListener(Consumer<List<TSValue>> batchHandler, Long
+    // interval) {
+    // return new SubscriptionListener() {
+    // private String getLabel() {
+    // return "subscription_events_" + interval + "_ms";
+    // }
 
-            @Override
-            public void onEventReceived(
-                    OpcUaSubscription subscription,
-                    List<OpcUaMonitoredItem> monitoredItems,
-                    List<Variant[]> eventFieldLists) {
-                EncodingContext context = subscription.getClient().getStaticEncodingContext();
-                ICallBackObject ac = callBack.startCallback(getLabel(), monitoredItems);
+    // @Override
+    // public void onEventReceived(
+    // OpcUaSubscription subscription,
+    // List<OpcUaMonitoredItem> monitoredItems,
+    // List<Variant[]> eventFieldLists) {
+    // EncodingContext context =
+    // subscription.getClient().getStaticEncodingContext();
+    // ICallBackObject ac = callBack.startCallback(getLabel(), monitoredItems);
 
-                try {
-                    for (int i = 0; i < monitoredItems.size(); i++) {
+    // try {
+    // for (int i = 0; i < monitoredItems.size(); i++) {
 
-                        DataPoint dp = nodeIdToPointIdMap
-                                .get(monitoredItems.get(i).getReadValueId().getNodeId().toString());
-                        if (dp == null) {
-                            logger.debug("Skipping event for unknown nodeId: " +
-                                    monitoredItems.get(i).getReadValueId().getNodeId().toString());
-                            continue;
-                        }
-                        Variant[] eventFields = eventFieldLists.get(i);
-                        List<TSValue> alarmValues = new ArrayList<>();
+    // DataPoint dp = nodeIdToPointIdMap
+    // .get(monitoredItems.get(i).getReadValueId().getNodeId().toParseableString());
+    // if (dp == null) {
+    // logger.debug("Skipping event for unknown nodeId: " +
+    // monitoredItems.get(i).getReadValueId().getNodeId().toParseableString());
+    // continue;
+    // }
+    // Variant[] eventFields = eventFieldLists.get(i);
+    // List<TSValue> alarmValues = new ArrayList<>();
 
-                        for (Variant variant : eventFields) {
-                            if (variant.getValue() instanceof EventFieldList) {
-                                EventFieldList eventFieldList = (EventFieldList) variant.getValue();
-                                Variant[] fields = eventFieldList.getEventFields();
+    // for (Variant variant : eventFields) {
+    // if (variant.getValue() instanceof EventFieldList) {
+    // EventFieldList eventFieldList = (EventFieldList) variant.getValue();
+    // Variant[] fields = eventFieldList.getEventFields();
 
-                                String json = VariantJsonConverter.variantsToJson(context, fields);
+    // String json = VariantJsonConverter.variantsToJson(context, fields);
 
-                                // Create TSValue from alarm data
-                                TSValue tsValue = TSValueAlarmFactory.createTSValue(
-                                        dp,
-                                        json);
+    // // Create TSValue from alarm data
+    // TSValue tsValue = TSValueAlarmFactory.createTSValue(
+    // dp,
+    // json);
 
-                                if (tsValue.isConsistent()
-                                        && dp.getEquals().isEqual(tsValue.value, tsValue.isGood)) {
-                                    alarmValues.add(tsValue);
-                                }
-                            } else {
-                                logger.debug("Skipping non-EventFieldList variant in event fields.");
-                            }
-                        }
+    // if (tsValue.isConsistent()
+    // && dp.getEquals().isEqual(tsValue.value, tsValue.isGood)) {
+    // alarmValues.add(tsValue);
+    // }
+    // } else {
+    // logger.debug("Skipping non-EventFieldList variant in event fields.");
+    // }
+    // }
 
-                        if (!alarmValues.isEmpty()) {
-                            batchHandler.accept(alarmValues);
-                        }
-                    }
-                    logger.debug("Received {} alarm events at {}", eventFieldLists.size());
-                } catch (Exception e) {
-                    logger.error("Error processing alarm events: " + e.getMessage());
-                } finally {
-                    ac.close();
-                }
-            }
-        };
-    }
+    // if (!alarmValues.isEmpty()) {
+    // batchHandler.accept(alarmValues);
+    // }
+    // }
+    // logger.debug("Received {} alarm events at {}", eventFieldLists.size());
+    // } catch (Exception e) {
+    // logger.error("Error processing alarm events: " + e.getMessage());
+    // } finally {
+    // ac.close();
+    // }
+    // }
+    // };
+    // }
 
     @Override
     public void closeSubscription(DataReadGroup dataReadGroup) {

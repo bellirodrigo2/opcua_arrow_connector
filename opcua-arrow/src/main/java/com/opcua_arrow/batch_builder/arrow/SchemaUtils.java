@@ -2,6 +2,7 @@ package com.opcua_arrow.batch_builder.arrow;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.arrow.vector.types.FloatingPointPrecision;
 import org.apache.arrow.vector.types.TimeUnit;
@@ -21,7 +22,7 @@ public class SchemaUtils {
      * @param valueType The Java class of the value type
      * @return The Arrow schema
      */
-    public static Schema createSchema(Class<?> valueType) {
+    public static Schema createSchema(Class<?> valueType, Map<String, String> metadata) {
         List<Field> fields = new ArrayList<>();
 
         // Add pointid field
@@ -38,7 +39,7 @@ public class SchemaUtils {
         // Add statuscode field
         fields.add(Field.notNullable("statuscode", ArrowType.Bool.INSTANCE));
 
-        return new Schema(fields);
+        return new Schema(fields, metadata);
     }
 
     /**

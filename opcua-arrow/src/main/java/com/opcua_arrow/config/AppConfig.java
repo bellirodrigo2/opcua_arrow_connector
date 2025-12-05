@@ -1,5 +1,7 @@
 package com.opcua_arrow.config;
 
+import java.util.Map;
+
 /**
  * Configuration for infrastructure components (queues, buffers, etc.)
  */
@@ -89,82 +91,6 @@ public class AppConfig {
         return this;
     }
 
-    /**
-     * Create configuration from environment variables
-     */
-    public static AppConfig fromEnvironment() {
-        AppConfig config = new AppConfig();
-
-        String sourceName = System.getenv("APP_SOURCE_NAME");
-        if (sourceName != null) {
-            config.setSourceName(sourceName);
-        } else {
-            throw new IllegalArgumentException("APP_SOURCE_NAME environment variable is required");
-        }
-
-        String updateIntervalSeconds = System.getenv("APP_UPDATE_INTERVAL_SECONDS");
-        if (updateIntervalSeconds != null) {
-            config.setUpdateIntervalSeconds(Long.parseLong(updateIntervalSeconds));
-        } else {
-            throw new IllegalArgumentException("APP_UPDATE_INTERVAL_SECONDS environment variable is required");
-        }
-
-        // Queue settings
-        String initialQueueCapacity = System.getenv("QUEUE_INITIAL_CAPACITY");
-        if (initialQueueCapacity != null) {
-            config.setInitialQueueCapacity(Integer.parseInt(initialQueueCapacity));
-        }
-
-        String queueTimeoutMs = System.getenv("QUEUE_TIMEOUT_MS");
-        if (queueTimeoutMs != null) {
-            config.setQueueTimeoutMs(Integer.parseInt(queueTimeoutMs));
-        }
-
-        // Buffer settings
-        String initialBufferBuilderCapacity = System.getenv("BUFFER_INITIAL_CAPACITY");
-        if (initialBufferBuilderCapacity != null) {
-            config.setInitialBufferBuilderCapacity(Integer.parseInt(initialBufferBuilderCapacity));
-        }
-
-        String bufferCompressionEnabled = System.getenv("BUFFER_COMPRESSION_ENABLED");
-        if (bufferCompressionEnabled != null) {
-            config.setBufferCompressionEnabled(Boolean.parseBoolean(bufferCompressionEnabled));
-        }
-
-        String minBufferFlushSize = System.getenv("BUFFER_MIN_FLUSH_SIZE");
-        if (minBufferFlushSize != null) {
-            config.setMinBufferFlushSize(Integer.parseInt(minBufferFlushSize));
-        }
-
-        String minFlushIntervalMs = System.getenv("BUFFER_MIN_FLUSH_INTERVAL_MS");
-        if (minFlushIntervalMs != null) {
-            config.setMinFlushIntervalNanos(Long.parseLong(minFlushIntervalMs) * 1_000_000);
-        }
-
-        return config;
-    }
-
-    /**
-     * Validate configuration
-     */
-    public void validate() {
-        if (initialQueueCapacity <= 0) {
-            throw new IllegalArgumentException("Initial queue capacity must be positive");
-        }
-        if (queueTimeoutMs <= 0) {
-            throw new IllegalArgumentException("Queue timeout must be positive");
-        }
-        if (initialBufferBuilderCapacity <= 0) {
-            throw new IllegalArgumentException("Initial buffer builder capacity must be positive");
-        }
-        if (minBufferFlushSize <= 0) {
-            throw new IllegalArgumentException("Min buffer flush size must be positive");
-        }
-        if (minFlushIntervalNanos <= 0) {
-            throw new IllegalArgumentException("Min flush interval nanos must be positive");
-        }
-    }
-
     @Override
     public String toString() {
         return "InfraConfig{" +
@@ -175,5 +101,9 @@ public class AppConfig {
                 ", minBufferFlushSize=" + minBufferFlushSize +
                 ", minFlushIntervalNanos=" + minFlushIntervalNanos +
                 '}';
+    }
+
+    public static AppConfig fromMap(Map<String, String> configMap) {
+        return new AppConfig();
     }
 }

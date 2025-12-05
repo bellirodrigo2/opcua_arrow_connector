@@ -85,9 +85,9 @@ CREATE TABLE IF NOT EXISTS metadata.priority_group (
 
 CREATE TABLE IF NOT EXISTS metadata.stream_group(
     stream_group_uuid UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name TEXT,
     description VARCHAR,
-    partition_range INT4RANGE NOT NULL,
+    group_name TEXT NOT NULL,
+    -- partition_range INT4RANGE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );

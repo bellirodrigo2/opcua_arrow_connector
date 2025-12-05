@@ -1,6 +1,13 @@
 package com.opcua_arrow.batch_builder.arrow;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import com.opcua_arrow.batch_builder.arrow.columns.DoubleValueColumn;
 import com.opcua_arrow.batch_builder.arrow.columns.IntegerValueColumn;
@@ -11,16 +18,13 @@ import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.types.pojo.Schema;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
 class AcumBatchArrowBuilderTest {
 
     @Test
     void testConstructor_WithThresholds() {
         // Given
         DoubleValueColumn valueColumn = new DoubleValueColumn();
-        Schema schema = SchemaUtils.createSchema(Double.class);
+        Schema schema = SchemaUtils.createSchema(Double.class, new HashMap<>());
         BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
 
         // When
@@ -37,7 +41,7 @@ class AcumBatchArrowBuilderTest {
     void testFlush_BelowSizeThreshold_ReturnsNull() {
         // Given
         DoubleValueColumn valueColumn = new DoubleValueColumn();
-        Schema schema = SchemaUtils.createSchema(Double.class);
+        Schema schema = SchemaUtils.createSchema(Double.class, new HashMap<>());
         BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
 
         try (AcumBatchArrowBuilder builder = new AcumBatchArrowBuilder(
@@ -45,8 +49,7 @@ class AcumBatchArrowBuilderTest {
 
             List<TSValue> values = List.of(
                     new TSValue(1, 1000000L, 10.5, true, null),
-                    new TSValue(2, 2000000L, 20.5, true, null)
-            );
+                    new TSValue(2, 2000000L, 20.5, true, null));
             builder.appendList(values);
             assertEquals(2, builder.size());
 
@@ -63,7 +66,7 @@ class AcumBatchArrowBuilderTest {
     void testFlush_MeetsSizeThreshold_ReturnsData() {
         // Given
         DoubleValueColumn valueColumn = new DoubleValueColumn();
-        Schema schema = SchemaUtils.createSchema(Double.class);
+        Schema schema = SchemaUtils.createSchema(Double.class, new HashMap<>());
         BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
 
         try (AcumBatchArrowBuilder builder = new AcumBatchArrowBuilder(
@@ -72,8 +75,7 @@ class AcumBatchArrowBuilderTest {
             List<TSValue> values = List.of(
                     new TSValue(1, 1000000L, 10.5, true, null),
                     new TSValue(2, 2000000L, 20.5, true, null),
-                    new TSValue(3, 3000000L, 30.5, true, null)
-            );
+                    new TSValue(3, 3000000L, 30.5, true, null));
             builder.appendList(values);
             assertEquals(3, builder.size());
 
@@ -90,7 +92,7 @@ class AcumBatchArrowBuilderTest {
     void testFlush_ExceedsSizeThreshold_ReturnsData() {
         // Given
         DoubleValueColumn valueColumn = new DoubleValueColumn();
-        Schema schema = SchemaUtils.createSchema(Double.class);
+        Schema schema = SchemaUtils.createSchema(Double.class, new HashMap<>());
         BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
 
         try (AcumBatchArrowBuilder builder = new AcumBatchArrowBuilder(
@@ -100,8 +102,7 @@ class AcumBatchArrowBuilderTest {
                     new TSValue(1, 1000000L, 10.5, true, null),
                     new TSValue(2, 2000000L, 20.5, true, null),
                     new TSValue(3, 3000000L, 30.5, true, null),
-                    new TSValue(4, 4000000L, 40.5, true, null)
-            );
+                    new TSValue(4, 4000000L, 40.5, true, null));
             builder.appendList(values);
             assertEquals(4, builder.size());
 
@@ -118,7 +119,7 @@ class AcumBatchArrowBuilderTest {
     void testFlush_MeetsTimeThreshold_ReturnsData() throws InterruptedException {
         // Given
         DoubleValueColumn valueColumn = new DoubleValueColumn();
-        Schema schema = SchemaUtils.createSchema(Double.class);
+        Schema schema = SchemaUtils.createSchema(Double.class, new HashMap<>());
         BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
 
         // Use a very short time threshold for testing
@@ -126,8 +127,7 @@ class AcumBatchArrowBuilderTest {
                 schema, 10, allocator, false, valueColumn, 100, TimeUnit.MILLISECONDS.toNanos(50))) {
 
             List<TSValue> values = List.of(
-                    new TSValue(1, 1000000L, 10.5, true, null)
-            );
+                    new TSValue(1, 1000000L, 10.5, true, null));
             builder.appendList(values);
             assertEquals(1, builder.size());
 
@@ -147,7 +147,7 @@ class AcumBatchArrowBuilderTest {
     void testFlush_EmptyBuffer_ReturnsNull() {
         // Given
         DoubleValueColumn valueColumn = new DoubleValueColumn();
-        Schema schema = SchemaUtils.createSchema(Double.class);
+        Schema schema = SchemaUtils.createSchema(Double.class, new HashMap<>());
         BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
 
         try (AcumBatchArrowBuilder builder = new AcumBatchArrowBuilder(
@@ -165,7 +165,7 @@ class AcumBatchArrowBuilderTest {
     void testFlush_AccumulationAcrossMultipleCalls() {
         // Given
         DoubleValueColumn valueColumn = new DoubleValueColumn();
-        Schema schema = SchemaUtils.createSchema(Double.class);
+        Schema schema = SchemaUtils.createSchema(Double.class, new HashMap<>());
         BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
 
         try (AcumBatchArrowBuilder builder = new AcumBatchArrowBuilder(
@@ -174,8 +174,7 @@ class AcumBatchArrowBuilderTest {
             // Add 2 values
             builder.appendList(List.of(
                     new TSValue(1, 1000000L, 10.5, true, null),
-                    new TSValue(2, 2000000L, 20.5, true, null)
-            ));
+                    new TSValue(2, 2000000L, 20.5, true, null)));
 
             // First flush - should return null
             byte[] result1 = builder.flush();
@@ -186,8 +185,7 @@ class AcumBatchArrowBuilderTest {
             builder.appendList(List.of(
                     new TSValue(3, 3000000L, 30.5, true, null),
                     new TSValue(4, 4000000L, 40.5, true, null),
-                    new TSValue(5, 5000000L, 50.5, true, null)
-            ));
+                    new TSValue(5, 5000000L, 50.5, true, null)));
             assertEquals(5, builder.size());
 
             // Second flush - should return data
@@ -201,7 +199,7 @@ class AcumBatchArrowBuilderTest {
     void testFlush_TimerResetAfterSuccessfulFlush() throws InterruptedException {
         // Given
         DoubleValueColumn valueColumn = new DoubleValueColumn();
-        Schema schema = SchemaUtils.createSchema(Double.class);
+        Schema schema = SchemaUtils.createSchema(Double.class, new HashMap<>());
         BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
 
         try (AcumBatchArrowBuilder builder = new AcumBatchArrowBuilder(
@@ -236,7 +234,7 @@ class AcumBatchArrowBuilderTest {
     void testFlush_BothThresholdsConfigured_SizeWins() {
         // Given
         DoubleValueColumn valueColumn = new DoubleValueColumn();
-        Schema schema = SchemaUtils.createSchema(Double.class);
+        Schema schema = SchemaUtils.createSchema(Double.class, new HashMap<>());
         BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
 
         try (AcumBatchArrowBuilder builder = new AcumBatchArrowBuilder(
@@ -246,8 +244,7 @@ class AcumBatchArrowBuilderTest {
             builder.appendList(List.of(
                     new TSValue(1, 1000000L, 10.5, true, null),
                     new TSValue(2, 2000000L, 20.5, true, null),
-                    new TSValue(3, 3000000L, 30.5, true, null)
-            ));
+                    new TSValue(3, 3000000L, 30.5, true, null)));
 
             // When - flush immediately without waiting for time threshold
             byte[] result = builder.flush();
@@ -261,7 +258,7 @@ class AcumBatchArrowBuilderTest {
     void testFlush_MultipleFlushCycles() {
         // Given
         DoubleValueColumn valueColumn = new DoubleValueColumn();
-        Schema schema = SchemaUtils.createSchema(Double.class);
+        Schema schema = SchemaUtils.createSchema(Double.class, new HashMap<>());
         BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
 
         try (AcumBatchArrowBuilder builder = new AcumBatchArrowBuilder(
@@ -270,8 +267,7 @@ class AcumBatchArrowBuilderTest {
             // First cycle
             builder.appendList(List.of(
                     new TSValue(1, 1000000L, 10.5, true, null),
-                    new TSValue(2, 2000000L, 20.5, true, null)
-            ));
+                    new TSValue(2, 2000000L, 20.5, true, null)));
             byte[] batch1 = builder.flush();
             assertNotNull(batch1);
             assertEquals(0, builder.size());
@@ -279,8 +275,7 @@ class AcumBatchArrowBuilderTest {
             // Second cycle
             builder.appendList(List.of(
                     new TSValue(3, 3000000L, 30.5, true, null),
-                    new TSValue(4, 4000000L, 40.5, true, null)
-            ));
+                    new TSValue(4, 4000000L, 40.5, true, null)));
             byte[] batch2 = builder.flush();
             assertNotNull(batch2);
             assertEquals(0, builder.size());
@@ -297,7 +292,7 @@ class AcumBatchArrowBuilderTest {
     void testFlush_WithCompression() {
         // Given
         DoubleValueColumn valueColumn = new DoubleValueColumn();
-        Schema schema = SchemaUtils.createSchema(Double.class);
+        Schema schema = SchemaUtils.createSchema(Double.class, new HashMap<>());
         BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
 
         try (AcumBatchArrowBuilder builder = new AcumBatchArrowBuilder(
@@ -305,8 +300,7 @@ class AcumBatchArrowBuilderTest {
 
             builder.appendList(List.of(
                     new TSValue(1, 1000000L, 10.5, true, null),
-                    new TSValue(2, 2000000L, 20.5, true, null)
-            ));
+                    new TSValue(2, 2000000L, 20.5, true, null)));
 
             // When
             byte[] compressedResult = builder.flush();
@@ -321,7 +315,7 @@ class AcumBatchArrowBuilderTest {
     void testWithIntegerValues() {
         // Given
         IntegerValueColumn valueColumn = new IntegerValueColumn();
-        Schema schema = SchemaUtils.createSchema(Integer.class);
+        Schema schema = SchemaUtils.createSchema(Integer.class, new HashMap<>());
         BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
 
         try (AcumBatchArrowBuilder builder = new AcumBatchArrowBuilder(
@@ -329,8 +323,7 @@ class AcumBatchArrowBuilderTest {
 
             builder.appendList(List.of(
                     new TSValue(1, 1000000L, 100, true, null),
-                    new TSValue(2, 2000000L, 200, true, null)
-            ));
+                    new TSValue(2, 2000000L, 200, true, null)));
 
             // When
             byte[] result = builder.flush();
@@ -345,7 +338,7 @@ class AcumBatchArrowBuilderTest {
     void testReset_ClearsSizeButNotTimer() throws InterruptedException {
         // Given
         DoubleValueColumn valueColumn = new DoubleValueColumn();
-        Schema schema = SchemaUtils.createSchema(Double.class);
+        Schema schema = SchemaUtils.createSchema(Double.class, new HashMap<>());
         BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
 
         try (AcumBatchArrowBuilder builder = new AcumBatchArrowBuilder(
@@ -374,7 +367,7 @@ class AcumBatchArrowBuilderTest {
     void testZeroSizeThreshold_FlushesImmediately() {
         // Given
         DoubleValueColumn valueColumn = new DoubleValueColumn();
-        Schema schema = SchemaUtils.createSchema(Double.class);
+        Schema schema = SchemaUtils.createSchema(Double.class, new HashMap<>());
         BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
 
         try (AcumBatchArrowBuilder builder = new AcumBatchArrowBuilder(
@@ -395,7 +388,7 @@ class AcumBatchArrowBuilderTest {
     void testZeroTimeThreshold_FlushesImmediately() {
         // Given
         DoubleValueColumn valueColumn = new DoubleValueColumn();
-        Schema schema = SchemaUtils.createSchema(Double.class);
+        Schema schema = SchemaUtils.createSchema(Double.class, new HashMap<>());
         BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
 
         try (AcumBatchArrowBuilder builder = new AcumBatchArrowBuilder(
@@ -403,7 +396,8 @@ class AcumBatchArrowBuilderTest {
 
             builder.appendList(List.of(new TSValue(1, 1000000L, 10.5, true, null)));
 
-            // When - even with size below threshold, should flush because time threshold is 0
+            // When - even with size below threshold, should flush because time threshold is
+            // 0
             byte[] result = builder.flush();
 
             // Then

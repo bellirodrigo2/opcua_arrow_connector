@@ -30,21 +30,11 @@ import com.opcua_arrow.service.PostgreSQLDataPointProvider;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 public class DataProviderModule extends AbstractModule {
-    private static final Logger logger = LoggerFactory.getLogger(DataProviderModule.class);
 
     @Override
     protected void configure() {
         bind(IProvideDataPoint.class).to(PostgreSQLDataPointProvider.class);
-    }
-
-    @Provides
-    @Singleton
-    public ConfigProvider provideConfigProvider() {
-        return new ConfigProvider();
     }
 
     @Provides
@@ -61,7 +51,6 @@ public class DataProviderModule extends AbstractModule {
     @Provides
     @Singleton
     public DataSource provideDataSource(PostgreSQLConfig config) {
-        logger.info("Configuring HikariCP connection pool for PostgreSQL");
 
         HikariConfig hikariConfig = new HikariConfig();
 
@@ -98,17 +87,8 @@ public class DataProviderModule extends AbstractModule {
         hikariConfig.setPoolName("PostgreSQL-HikariPool");
         hikariConfig.setRegisterMbeans(true); // Enable JMX monitoring
 
-        logger.info("HikariCP configured: maxPoolSize={}, minIdle={}, connectionTimeout={}ms",
-                config.getMaxPoolSize(), config.getMinPoolSize(), config.getConnectionTimeout().toMillis());
-
         return new HikariDataSource(hikariConfig);
     }
-
-    // @Provides
-    // @Singleton
-    // public String provideSourceName(PostgreSQLConfig config) {
-    // return config.getSourceName();
-    // }
 
     private class DTOToDataPoint implements IDataPointFactory<DataPointDTO> {
 
@@ -148,8 +128,6 @@ public class DataProviderModule extends AbstractModule {
                     if (isNumeric(dataType)) {
                         return new BaseEqualValue(filterIntervalSeconds, new RangeEqualValue(filterRange));
                     } else {
-                        logger.warn(
-                                "Range filter is not applicable for non-numeric data types. Defaulting to StrictEqualValue.");
                         return new BaseEqualValue(filterIntervalSeconds, createIsSameValue(dataType));
                     }
                 default:

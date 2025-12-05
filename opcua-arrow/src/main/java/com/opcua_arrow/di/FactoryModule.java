@@ -1,13 +1,13 @@
 package com.opcua_arrow.di;
 
 import java.util.List;
+import java.util.Map;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
-import com.opcua_arrow.batch_builder.AcumJsonBufferBuilder;
 import com.opcua_arrow.batch_builder.IBufferBuilder;
 import com.opcua_arrow.batch_builder.arrow.AcumBatchArrowBuilder;
 import com.opcua_arrow.batch_builder.arrow.IValueColumn;
@@ -103,17 +103,15 @@ public class FactoryModule extends AbstractModule {
             int minBufferFlushSize = appConfig.getMinBufferFlushSize();
             long minFlushIntervalNanos = appConfig.getMinFlushIntervalNanos();
 
-            if (dataType == EDataType.EVENTS)
-                return new AcumJsonBufferBuilder(appConfig.getSourceName(), minBufferFlushSize,
-                        minFlushIntervalNanos);
-
             IValueColumn valueColumn = createValueColumn(dataType);
+            Map<String, String> metadata = Map.of("write_group", group.toString());
             return new AcumBatchArrowBuilder(
                     appConfig.getInitialBufferBuilderCapacity(),
                     appConfig.isBufferCompressionEnabled(),
                     valueColumn,
                     minBufferFlushSize,
-                    minFlushIntervalNanos);
+                    minFlushIntervalNanos,
+                    metadata);
 
         }
 
